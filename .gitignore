@@ -1,0 +1,48 @@
+# ===================
+# 环境配置
+# ===================
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+docker-compose.override.yml
+
+# ===================
+# IDE / 编辑器
+# ===================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# ===================
+# 操作系统
+# ===================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===================
+# 临时文件
+# ===================
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+*.bak
+.cache/
+.dev/
+.serena/
+
+# ===================
+# 构建产物
+# ===================
+dist/
+build/
+release/
