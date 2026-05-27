@@ -11,7 +11,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 
 from backend.app.database import Base, get_db
 from backend.app.main import app
-from backend.app.models import Drama, Episode, HighlightEvent
+from backend.app.models import Drama, Episode, HighlightEvent, UserAccount
+from backend.app.services.auth_service import create_access_token, hash_password
 
 
 @pytest.fixture()
@@ -43,6 +44,24 @@ def client(db_session: Session) -> Iterator[TestClient]:
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
+
+
+def _auth_headers_for_role(db_session: Session, username: str, role: str) -> dict[str, str]:
+    user = UserAccount(username=username, password_hash=hash_password("secret123"), role=role)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return {"Authorization": f"Bearer {create_access_token(user)}"}
+
+
+@pytest.fixture()
+def admin_headers(db_session: Session) -> dict[str, str]:
+    return _auth_headers_for_role(db_session, "admin-user", "admin")
+
+
+@pytest.fixture()
+def uploader_headers(db_session: Session) -> dict[str, str]:
+    return _auth_headers_for_role(db_session, "uploader-user", "uploader")
 
 
 @pytest.fixture()

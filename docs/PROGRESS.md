@@ -27,7 +27,7 @@
 - 补齐后台高光管理能力：支持手动新增高光、编辑高光、归档高光、批量更新状态，并在发布状态下校验同集高光时间段重叠。
 - 强化 AI 分析入库保护：缺少字幕时明确置为 `failed`，非法高光项不会直接中断整集分析，响应中返回 `invalid_count`。
 - 补齐管理统计接口：新增高光互动排行、剧集高光时间线、单条高光统计，便于后续后台看板继续扩展。
-- 补齐生产化最小测试集：新增 `tests/test_player_api.py`、`tests/test_interactions.py`、`tests/test_analysis.py` 和内存 SQLite 测试夹具，覆盖播放端字段隔离、draft/rejected 不下发、互动幂等、admin token、字幕缺失和高光校验。
+- 补齐生产化最小测试集：新增 `tests/test_player_api.py`、`tests/test_interactions.py`、`tests/test_analysis.py` 和内存 SQLite 测试夹具，覆盖播放端字段隔离、draft/rejected 不下发、互动幂等、后台鉴权、字幕缺失和高光校验。
 - 将 Pydantic v2 schema 配置迁移到 `ConfigDict(from_attributes=True)`，减少测试和后续升级噪音。
 - 管理后台接入新增审核和统计接口：高光审核页支持勾选后批量发布、驳回、归档；单条高光可打开统计抽屉；新增单集时间线看板和高光排行榜。
 - 同步 `docs/API_CONTRACT.md`，记录新增高光管理接口、分析响应字段和 analytics 接口。
@@ -122,7 +122,7 @@
 
 ### 已完成
 - 新增后台账号托管接口 `POST /api/auth/admin/users`，公开注册仍只创建 `uploader`，后台可用 `role=admin` 的 Bearer JWT 访问管理接口。
-- `require_admin` 支持 `X-Admin-Token` 和 admin Bearer token 双轨鉴权。
+- `require_admin` 支持 admin Bearer token 鉴权。
 - 收口账号密码登录契约：`/api/auth/login` 和 `/api/auth/me` 响应新增 `expires_in` 与嵌套 `user`，默认 JWT 有效期调整为 120 分钟，并新增无 refresh token 版本的 `POST /api/auth/logout` 占位接口。
 - `GET /api/dramas`、`GET /api/episodes`、`GET /api/episodes/{episode_id}/highlights` 已纳入后台鉴权，防止后台审核字段未授权暴露。
 - `POST /api/interactions` 新增匿名身份与 `idempotency_key` 前缀一致性校验；非匿名 `user_id` 必须携带匹配的 Bearer token。
@@ -140,10 +140,10 @@
 
 ### 已完成
 - 将远端 `feature/frontend` 合入当前 `dev`，保留 `dev` 现有后端、AI 服务、移动端、数据库和测试实现。
-- 管理后台前端切换为 `feature/frontend` 的 Vite + React + Ant Design + React Router 结构，新增 `/` 入口页、`/login` 登录页和 `/admin/*` 工作台路由。
-- 登录页从开发占位 token 改为调用 `POST /api/auth/login`，仅允许 `role=admin` 的账号进入后台；退出登录调用 `POST /api/auth/logout` 后清理本地登录态。
+- 管理后台前端切换为 `feature/frontend` 的 Vite + React + Ant Design + React Router 结构，新增 `/` 入口页、`/login` 登录页和工作台路由。
+- 登录页从开发占位 token 改为调用 `POST /api/auth/login`；退出登录调用 `POST /api/auth/logout` 后清理本地登录态。
 - 新增前端 Axios client，自动携带 `Authorization: Bearer <access_token>`，并在 `401/403` 时清 token 跳回 `/login`。
-- 清理旧版 TypeScript 管理后台入口，避免 `src/main.tsx`、旧 `X-Admin-Token` API client 与新 JSX 工作台并存。
+- 清理旧版 TypeScript 管理后台入口，避免 `src/main.tsx` 和新 JSX 工作台并存。
 - 同步 `frontend/admin_web/README.md`、`frontend/admin_web/AUTHENTICATION.md`、`docs/DECISIONS.md` 和本进度文档。
 
 ### 已验证
@@ -154,4 +154,25 @@
 - `python -m pytest tests/test_auth_permissions.py tests/test_interactions.py tests/test_analysis.py tests/test_player_api.py tests/test_uploads.py` 通过，共 20 个测试。
 
 ### 遗留问题
-- `/admin/*` 当前仍是导航和占位页面，后续还需要按 `docs/API_CONTRACT.md` 接入短剧、剧集、AI 分析、高光审核和看板接口。
+- 工作台当前仍是导航和占位页面，后续还需要按 `docs/API_CONTRACT.md` 接入短剧、剧集、AI 分析、高光审核和看板接口。
+
+## 2026-05-27 工作台路由与角色权限收口
+
+### 已完成
+- 将前端工作台路由从 `/admin/*` 改为 `/workspace/*`，旧 `/admin/*` 保留重定向到 `/workspace`。
+- 将前端命名从 `AdminWorkspace` / `adminModules` / `pages/admin` 调整为 `WorkspaceLayout` / `workspaceModules` / `pages/workspace`。
+- 登录页不再拒绝 `uploader`，而是根据角色分流：`admin` 默认进入仪表盘，`uploader` 默认进入剧集配置；侧边栏按角色过滤页面。
+- 后端新增通用 `require_roles(...)` 权限依赖，并移除 `X-Admin-Token` / `ADMIN_TOKEN` 固定后台密钥逻辑。
+- 后端接口权限调整：`admin/uploader` 可访问短剧、剧集和 AI 分析；高光审核发布、analytics、账号托管和 demo seed 仅 `admin` 可访问。
+- 新增 `backend/scripts/bootstrap_admin.py`，用于在数据库无管理员时创建第一个 `admin` 并生成一次性随机密码。
+- 同步 `.env.example`、`docs/API_CONTRACT.md`、`docs/DECISIONS.md`、`frontend/admin_web/README.md` 和 `frontend/admin_web/AUTHENTICATION.md`。
+
+### 已验证
+- `py -3.12 -m compileall backend ai_service` 通过。
+- `npm exec eslint .` 通过。
+- `npm run build` 通过，Vite 仍提示单个 JS chunk 超过 500k，为当前 Ant Design 单包构建的既有体积提示。
+- `py -3.12 -m pytest tests/test_auth_permissions.py tests/test_interactions.py tests/test_analysis.py tests/test_player_api.py tests/test_uploads.py` 执行到 18 项通过；3 个上传测试在当前 Windows 临时目录权限处报 `PermissionError`，未进入业务断言。
+- 使用 FastAPI TestClient 冒烟验证通过：未登录访问工作台 API 返回 401；`uploader` 可读短剧、上传视频并触发 AI 分析；`uploader` 访问高光审核和 analytics 返回 403；`admin` 可访问高光审核和 analytics。
+
+### 遗留问题
+- `/workspace/*` 当前仍是导航和占位页面，后续需要接入短剧、剧集上传/配置、AI 分析、高光审核和看板真实数据 API。

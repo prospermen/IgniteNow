@@ -2,29 +2,34 @@ import { useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from 'antd';
 import { DoubleLeftOutlined, DoubleRightOutlined, LogoutOutlined } from '@ant-design/icons';
-import { adminModules, getAdminModuleByPath } from '../adminModules.jsx';
-import { clearAdminSession, getAdminUserName } from '../auth.js';
+import {
+  getWorkspaceModuleByPath,
+  getWorkspaceModulesForRole,
+} from '../workspaceModules.jsx';
+import { clearAdminSession, getAdminUserName, getAdminUserRole } from '../auth.js';
 import { logoutAdmin } from '../services/authApi.js';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
-export default function AdminWorkspace() {
+export default function WorkspaceLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const currentModule = getAdminModuleByPath(location.pathname);
+  const userRole = getAdminUserRole();
+  const accessibleModules = getWorkspaceModulesForRole(userRole);
+  const currentModule = getWorkspaceModuleByPath(location.pathname);
   const userName = getAdminUserName();
   const userInitial = userName.trim().charAt(0).toUpperCase() || 'A';
 
   const menuItems = useMemo(
     () =>
-      adminModules.map((module) => ({
+      accessibleModules.map((module) => ({
         key: module.id,
         icon: module.icon,
         label: module.title,
       })),
-    [],
+    [accessibleModules],
   );
 
   const userMenuItems = [
@@ -78,7 +83,7 @@ export default function AdminWorkspace() {
           selectedKeys={[currentModule.id]}
           items={menuItems}
           onClick={({ key }) => {
-            const targetModule = adminModules.find((module) => module.id === key);
+            const targetModule = accessibleModules.find((module) => module.id === key);
             if (targetModule) {
               navigate(targetModule.path);
             }

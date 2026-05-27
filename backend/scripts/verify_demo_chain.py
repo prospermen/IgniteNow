@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import sys
 from dataclasses import dataclass
 from typing import Any
@@ -39,7 +40,9 @@ def parse_args() -> argparse.Namespace:
         description="Verify the local IgniteNow E001-E007 demo chain without writing data."
     )
     parser.add_argument("--base-url", default="http://localhost:8000", help="FastAPI base URL.")
-    parser.add_argument("--admin-token", default="demo-admin-token", help="Admin token for analytics checks.")
+    parser.add_argument("--admin-username", default="", help="Admin username for analytics checks.")
+    parser.add_argument("--admin-password", default="", help="Admin password for analytics checks.")
+    parser.add_argument("--skip-admin-analytics", action="store_true", help="Skip JWT-protected admin analytics checks.")
     parser.add_argument("--drama-id", type=int, default=2, help="Main demo drama id.")
     parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout in seconds.")
     parser.add_argument(
@@ -62,10 +65,11 @@ def request_json(
     timeout: float,
     *,
     headers: dict[str, str] | None = None,
+    json: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     url = make_url(base_url, path)
     try:
-        response = session.request(method, url, timeout=timeout, headers=headers)
+        response = session.request(method, url, timeout=timeout, headers=headers, json=json)
     except requests.RequestException as exc:
         raise VerificationError(f"{method} {url} failed: {exc}") from exc
     if response.status_code >= 400:
@@ -175,9 +179,29 @@ def check_admin_analytics(session: requests.Session, args: argparse.Namespace) -
         forbidden = session.get(url, timeout=args.timeout)
     except requests.RequestException as exc:
         raise VerificationError(f"GET {url} failed: {exc}") from exc
-    assert_true(forbidden.status_code == 403, f"analytics without token returned {forbidden.status_code}, expected 403")
+    assert_true(forbidden.status_code == 401, f"analytics without token returned {forbidden.status_code}, expected 401")
 
-    headers = {"X-Admin-Token": args.admin_token}
+    admin_password = args.admin_password
+    if args.admin_username and not admin_password:
+        admin_password = getpass.getpass("Admin password: ")
+    if not args.admin_username or not admin_password:
+        raise VerificationError("admin analytics check requires --admin-username and --admin-password")
+
+    login = unwrap_data(
+        request_json(
+            session,
+            "POST",
+            args.base_url,
+            "/api/auth/login",
+            args.timeout,
+            json={"username": args.admin_username, "password": admin_password},
+        ),
+        "admin login",
+    )
+    if login.get("role") != "admin":
+        raise VerificationError("provided account is not admin")
+
+    headers = {"Authorization": f"Bearer {login['access_token']}"}
     data = unwrap_data(
         request_json(session, "GET", args.base_url, "/api/analytics/overview", args.timeout, headers=headers),
         "analytics overview",
@@ -284,7 +308,8 @@ def main() -> int:
                     f"episode {expected['title']} video Range",
                     lambda expected=expected: check_video_range(session, args, expected),
                 )
-        run_check(results, "admin analytics", lambda: check_admin_analytics(session, args))
+        if not args.skip_admin_analytics:
+            run_check(results, "admin analytics", lambda: check_admin_analytics(session, args))
     except VerificationError:
         print("\nDemo verification failed.")
         return 1

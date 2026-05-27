@@ -17,7 +17,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if ((status === 401 || status === 403) && window.location.pathname.startsWith('/admin')) {
+    if ((status === 401 || status === 403) && window.location.pathname.startsWith('/workspace')) {
       clearAdminSession();
       window.location.assign('/login');
     }

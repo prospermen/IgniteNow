@@ -32,6 +32,10 @@ export function getAdminUserName() {
   return window.localStorage.getItem(ADMIN_USER_NAME_KEY) || 'admin';
 }
 
+export function getAdminUserRole() {
+  return window.localStorage.getItem(ADMIN_USER_ROLE_KEY) || '';
+}
+
 export function clearAdminSession() {
   window.localStorage.removeItem(ADMIN_ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(ADMIN_USER_NAME_KEY);

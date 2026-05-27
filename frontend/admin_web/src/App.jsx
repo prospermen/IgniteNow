@@ -1,15 +1,20 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LandingPage from './pages/LandingPage.jsx';
-import AdminWorkspace from './pages/AdminWorkspace.jsx';
+import WorkspaceLayout from './pages/WorkspaceLayout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
-import AnalyzePage from './pages/admin/AnalyzePage.jsx';
-import DashboardPage from './pages/admin/DashboardPage.jsx';
-import DramasPage from './pages/admin/DramasPage.jsx';
-import EpisodesPage from './pages/admin/EpisodesPage.jsx';
-import HighlightsPage from './pages/admin/HighlightsPage.jsx';
-import { hasAdminAccessToken } from './auth.js';
+import AnalyzePage from './pages/workspace/AnalyzePage.jsx';
+import DashboardPage from './pages/workspace/DashboardPage.jsx';
+import DramasPage from './pages/workspace/DramasPage.jsx';
+import EpisodesPage from './pages/workspace/EpisodesPage.jsx';
+import HighlightsPage from './pages/workspace/HighlightsPage.jsx';
+import { getAdminUserRole, hasAdminAccessToken } from './auth.js';
+import {
+  canAccessWorkspaceModule,
+  getDefaultWorkspacePath,
+  getWorkspaceModuleById,
+} from './workspaceModules.jsx';
 
-function RequireAdminAuth({ children }) {
+function RequireWorkspaceAuth({ children }) {
   const location = useLocation();
 
   if (!hasAdminAccessToken()) {
@@ -19,26 +24,77 @@ function RequireAdminAuth({ children }) {
   return children;
 }
 
+function RequireWorkspaceRole({ moduleId, children }) {
+  const role = getAdminUserRole();
+  const module = getWorkspaceModuleById(moduleId);
+
+  if (!canAccessWorkspaceModule(module, role)) {
+    return <Navigate to={getDefaultWorkspacePath(role)} replace />;
+  }
+
+  return children;
+}
+
+function WorkspaceIndex() {
+  return <Navigate to={getDefaultWorkspacePath(getAdminUserRole())} replace />;
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
-        path="/admin"
+        path="/workspace"
         element={
-          <RequireAdminAuth>
-            <AdminWorkspace />
-          </RequireAdminAuth>
+          <RequireWorkspaceAuth>
+            <WorkspaceLayout />
+          </RequireWorkspaceAuth>
         }
       >
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="dramas" element={<DramasPage />} />
-        <Route path="episodes" element={<EpisodesPage />} />
-        <Route path="analyze" element={<AnalyzePage />} />
-        <Route path="highlights" element={<HighlightsPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={<WorkspaceIndex />} />
+        <Route
+          path="dramas"
+          element={
+            <RequireWorkspaceRole moduleId="dramas">
+              <DramasPage />
+            </RequireWorkspaceRole>
+          }
+        />
+        <Route
+          path="episodes"
+          element={
+            <RequireWorkspaceRole moduleId="episodes">
+              <EpisodesPage />
+            </RequireWorkspaceRole>
+          }
+        />
+        <Route
+          path="analyze"
+          element={
+            <RequireWorkspaceRole moduleId="analyze">
+              <AnalyzePage />
+            </RequireWorkspaceRole>
+          }
+        />
+        <Route
+          path="highlights"
+          element={
+            <RequireWorkspaceRole moduleId="highlights">
+              <HighlightsPage />
+            </RequireWorkspaceRole>
+          }
+        />
+        <Route
+          path="dashboard"
+          element={
+            <RequireWorkspaceRole moduleId="dashboard">
+              <DashboardPage />
+            </RequireWorkspaceRole>
+          }
+        />
       </Route>
+      <Route path="/admin/*" element={<Navigate to="/workspace" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

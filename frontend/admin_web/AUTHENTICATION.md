@@ -1,6 +1,6 @@
-# IgniteNow Admin Web JWT 认证方案
+# IgniteNow Web Workspace JWT 认证方案
 
-本文记录管理后台当前采用的 JWT 登录方案。第一版不做 refresh token，access token 存在 `localStorage`，后台业务接口统一携带 `Authorization: Bearer <access_token>`。
+本文记录 Web 工作台当前采用的 JWT 登录方案。第一版不做 refresh token，access token 存在 `localStorage`，需要登录的业务接口统一携带 `Authorization: Bearer <access_token>`。
 
 ## 1. 目标
 
@@ -12,9 +12,8 @@
 → POST /api/auth/login
 → 后端校验账号和密码 hash
 → 后端签发 access_token
-→ 前端校验 user.role === "admin"
 → 前端保存 access_token 和用户信息
-→ 跳转 /admin/dashboard
+→ 根据 role 跳转 /workspace/*
 → 后续请求携带 Authorization: Bearer <access_token>
 → 后端校验 JWT 签名、过期时间和角色
 → 通过后调用对应业务接口函数
@@ -24,16 +23,16 @@
 
 ```text
 /                 产品入口页
-/login            后台登录页
-/admin            后台工作台，默认跳转 /admin/dashboard
-/admin/dashboard  仪表盘
-/admin/dramas     短剧管理
-/admin/episodes   剧集配置
-/admin/analyze    AI 高光识别
-/admin/highlights 高光审核发布
+/login            工作台登录页
+/workspace        统一工作台，按 role 跳转默认页
+/workspace/dashboard  仪表盘，admin
+/workspace/dramas     短剧管理，admin
+/workspace/episodes   剧集配置，admin/uploader
+/workspace/analyze    AI 高光识别，admin/uploader
+/workspace/highlights 高光审核发布，admin
 ```
 
-访问 `/admin/*` 时需要路由保护：本地有 access token 才允许进入，否则跳转 `/login`。后端返回 `401/403` 时，前端清除本地 token 并跳转 `/login`。
+访问 `/workspace/*` 时需要路由保护：本地有 access token 才允许进入，否则跳转 `/login`。页面路由会按 role 过滤，无权限页面会跳转到该角色默认页。后端返回 `401/403` 时，前端清除本地 token 并跳转 `/login`。
 
 ## 3. 登录接口
 
@@ -118,7 +117,8 @@ src/pages/LoginPage.jsx       登录表单，调用 /api/auth/login
 src/auth.js                   localStorage 登录态读写
 src/services/apiClient.js     Axios 实例，自动注入 Bearer token
 src/services/authApi.js       login/logout API 封装
-src/App.jsx                   /admin/* 路由保护
+src/App.jsx                   /workspace/* 路由和角色保护
+src/workspaceModules.jsx      工作台模块与角色权限配置
 ```
 
 `apiClient.js` 行为：
@@ -140,11 +140,19 @@ user_account 数据表
 /api/auth/admin/users
 password hash 工具
 JWT sign / verify 工具
-require_admin 依赖
+require_user / require_roles / require_admin 依赖
 ```
 
-后台 API 安全边界在后端：只有 `role=admin` 的 Bearer token 或合法 `X-Admin-Token` 能通过 `require_admin`。
+工作台 API 安全边界在后端：旧 `X-Admin-Token` 已移除，所有需要登录的接口都使用 Bearer JWT。`admin` 可访问高光审核、发布、analytics 和账号托管；`uploader` 只能访问上传、短剧/剧集配置读取和 AI 分析相关能力。
 
 ## 8. 当前状态
 
-当前 `/login` 已接入真实后端 JWT 登录，不再写入开发占位 token。`/admin/*` 已有工作台布局和路由守卫，但各业务页面仍是占位页，后续需要继续接入短剧、剧集、AI 分析、高光审核和看板接口。
+当前 `/login` 已接入真实后端 JWT 登录，不再写入开发占位 token。`/workspace/*` 已有工作台布局、路由守卫和按角色过滤的侧边栏，但各业务页面仍是占位页，后续需要继续接入短剧、剧集、AI 分析、高光审核和看板接口。
+
+首次本地部署如果没有管理员账号，需要先在仓库根目录运行：
+
+```bash
+python backend/scripts/bootstrap_admin.py
+```
+
+脚本只会在数据库中不存在 `admin` 角色账号时创建第一个管理员，并输出一次性随机密码。

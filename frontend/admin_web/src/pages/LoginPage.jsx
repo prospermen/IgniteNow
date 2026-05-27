@@ -5,25 +5,26 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { clearAdminSession, saveAdminSession } from '../auth.js';
 import { apiErrorMessage } from '../services/apiClient.js';
 import { loginAdmin } from '../services/authApi.js';
+import { getDefaultWorkspacePath } from '../workspaceModules.jsx';
 
 export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  const redirectTo = location.state?.from?.pathname ?? '/admin/dashboard';
+  const redirectTo = location.state?.from?.pathname;
 
   const handleSubmit = async (values) => {
     setSubmitting(true);
     try {
       const session = await loginAdmin(values);
-      if (session.role !== 'admin') {
+      if (!['admin', 'uploader'].includes(session.role)) {
         clearAdminSession();
-        message.error('当前账号不是管理员，无法进入后台。');
+        message.error('当前账号暂未开通工作台权限。');
         return;
       }
       saveAdminSession(session);
       message.success('已进入工作台');
-      navigate(redirectTo, { replace: true });
+      navigate(redirectTo ?? getDefaultWorkspacePath(session.role), { replace: true });
     } catch (error) {
       clearAdminSession();
       message.error(apiErrorMessage(error, '登录失败'));

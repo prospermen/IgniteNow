@@ -2,19 +2,13 @@
 
 基础地址：`http://localhost:8000`
 
-管理后台写接口和管理统计接口需要携带以下任一种鉴权凭证：
-
-```http
-X-Admin-Token: demo-admin-token
-```
+需要登录的后台/工作台接口统一携带 JWT：
 
 ```http
 Authorization: Bearer <access_token>
 ```
 
-后台管理接口支持两种鉴权方式：
-- `X-Admin-Token`：保留 MVP 演示用固定 token，便于本地演示和旧管理后台继续运行。
-- `Authorization: Bearer <access_token>`：登录角色为 `admin` 的账号可访问后台管理接口，供后续管理后台登录页接入。
+旧 MVP `X-Admin-Token` 固定后台密钥已移除，不再作为接口鉴权方式。
 
 统一响应：
 
@@ -36,7 +30,7 @@ Authorization: Bearer <access_token>
 
 ## 账号认证 API
 
-第一版采用 JWT access token，不做 refresh token。默认有效期为 `JWT_EXPIRE_MINUTES=120`，响应中的 `expires_in` 单位为秒。管理后台登录也复用本节接口：前端使用 `role=admin` 的账号登录后，在后台接口请求头中携带 `Authorization: Bearer <access_token>`。
+第一版采用 JWT access token，不做 refresh token。默认有效期为 `JWT_EXPIRE_MINUTES=120`，响应中的 `expires_in` 单位为秒。工作台登录复用本节接口：前端根据账号 `role` 决定可访问页面和接口权限。
 
 ### `POST /api/auth/register`
 
@@ -71,7 +65,7 @@ Authorization: Bearer <access_token>
 
 ### `POST /api/auth/login`
 
-登录账号，并返回 Bearer token。请求体同注册接口。管理后台应使用 `role=admin` 的账号登录，`uploader` token 不能访问后台管理接口。
+登录账号，并返回 Bearer token。请求体同注册接口。`admin` 和 `uploader` 都可以登录工作台，但可访问页面与接口不同。
 
 ### `GET /api/auth/me`
 
@@ -96,7 +90,7 @@ Authorization: Bearer <access_token>
 
 ### `POST /api/auth/admin/users`
 
-后台创建账号。需要 `X-Admin-Token` 或 admin Bearer token。请求体：
+后台创建账号。需要 `role=admin` 的 Bearer token。请求体：
 ```json
 {
   "username": "admin",
@@ -106,6 +100,14 @@ Authorization: Bearer <access_token>
 ```
 
 `role` 仅允许 `admin` 或 `uploader`。公开注册接口仍只能创建 `uploader`。
+
+首次部署时，如果数据库中还没有任何 `admin` 账号，可在服务端运行：
+
+```bash
+python backend/scripts/bootstrap_admin.py
+```
+
+该脚本只在不存在管理员时创建第一个 `admin`，并输出一次性随机密码；已有管理员时不会覆盖密码。
 
 ### `POST /api/uploads/episodes`
 
@@ -145,13 +147,13 @@ Content-Type: multipart/form-data
 
 ### `GET /api/dramas`
 
-需要 `X-Admin-Token` 或 admin Bearer token。
+需要 `admin` 或 `uploader` Bearer token。
 
 返回短剧列表。
 
 ### `POST /api/dramas`
 
-创建短剧。需要 `X-Admin-Token` 或 admin Bearer token。
+创建短剧。需要 `admin` 或 `uploader` Bearer token。
 
 请求体：
 
@@ -165,13 +167,13 @@ Content-Type: multipart/form-data
 
 ### `GET /api/episodes?drama_id=1`
 
-需要 `X-Admin-Token` 或 admin Bearer token。
+需要 `admin` 或 `uploader` Bearer token。
 
 返回剧集列表。`drama_id` 可选。
 
 ### `POST /api/episodes`
 
-创建剧集。需要 `X-Admin-Token` 或 admin Bearer token。
+创建剧集。需要 `admin` 或 `uploader` Bearer token。
 
 ```json
 {
@@ -187,7 +189,7 @@ Content-Type: multipart/form-data
 
 ### `POST /api/episodes/{episode_id}/analyze`
 
-触发 AI 高光识别。需要 `X-Admin-Token` 或 admin Bearer token。
+触发 AI 高光识别。需要 `admin` 或 `uploader` Bearer token。
 
 ```json
 {
@@ -212,13 +214,13 @@ AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek
 
 ### `GET /api/episodes/{episode_id}/highlights`
 
-需要 `X-Admin-Token` 或 admin Bearer token。
+需要 `role=admin` 的 Bearer token。
 
 返回后台审核用高光列表，包含 `reason`、`confidence`、`status`。
 
 ### `POST /api/episodes/{episode_id}/highlights`
 
-手动新增高光点。需要 `X-Admin-Token` 或 admin Bearer token。
+手动新增高光点。需要 `role=admin` 的 Bearer token。
 
 ```json
 {
@@ -240,7 +242,7 @@ AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek
 
 ### `PUT /api/highlights/{highlight_id}`
 
-编辑高光点。需要 `X-Admin-Token` 或 admin Bearer token。
+编辑高光点。需要 `role=admin` 的 Bearer token。
 
 可编辑字段：`start_time`、`end_time`、`highlight_type`、`emotion`、`intensity`、`confidence`、`trigger_score`、`reason`、`button_text`、`effect`、`status`。
 
@@ -248,11 +250,11 @@ AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek
 
 ### `DELETE /api/highlights/{highlight_id}`
 
-归档高光点。需要 `X-Admin-Token` 或 admin Bearer token。该接口不物理删除数据，而是将 `status` 置为 `archived`，用于保留审核痕迹并避免播放端继续下发。
+归档高光点。需要 `role=admin` 的 Bearer token。该接口不物理删除数据，而是将 `status` 置为 `archived`，用于保留审核痕迹并避免播放端继续下发。
 
 ### `POST /api/episodes/{episode_id}/highlights/bulk-status`
 
-批量更新该集高光状态。需要 `X-Admin-Token` 或 admin Bearer token。
+批量更新该集高光状态。需要 `role=admin` 的 Bearer token。
 
 ```json
 {
@@ -265,39 +267,39 @@ AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek
 
 ### `POST /api/episodes/{episode_id}/highlights/publish`
 
-发布该集所有 `draft` 高光。需要 `X-Admin-Token` 或 admin Bearer token。
+发布该集所有 `draft` 高光。需要 `role=admin` 的 Bearer token。
 
 ### `GET /api/analytics/overview`
 
-基础看板。需要 `X-Admin-Token` 或 admin Bearer token。
+基础看板。需要 `role=admin` 的 Bearer token。
 
 返回字段：`drama_count`、`episode_count`、`highlight_count`、`published_highlight_count`、`interaction_count`、`click_count`、`ignore_count`、`avg_click_rate`。
 
 ### `GET /api/analytics/highlight-types`
 
-高光类型分布。需要 `X-Admin-Token` 或 admin Bearer token。
+高光类型分布。需要 `role=admin` 的 Bearer token。
 
 ### `GET /api/analytics/top-actions`
 
-热门按钮点击排行。需要 `X-Admin-Token` 或 admin Bearer token。
+热门按钮点击排行。需要 `role=admin` 的 Bearer token。
 
 ### `GET /api/analytics/highlight-ranking?limit=20`
 
-按点击数、曝光数和点击率返回已发布高光排行。需要 `X-Admin-Token` 或 admin Bearer token。
+按点击数、曝光数和点击率返回已发布高光排行。需要 `role=admin` 的 Bearer token。
 
 返回字段：`highlight_id`、`episode_id`、`start_time`、`end_time`、`highlight_type`、`button_text`、`status`、`impression_count`、`click_count`、`ignore_count`、`click_rate`。
 
 ### `GET /api/analytics/episodes/{episode_id}/timeline`
 
-返回某集高光时间线及每条高光的曝光、点击、忽略和点击率。需要 `X-Admin-Token` 或 admin Bearer token。
+返回某集高光时间线及每条高光的曝光、点击、忽略和点击率。需要 `role=admin` 的 Bearer token。
 
 ### `GET /api/analytics/highlights/{highlight_id}`
 
-返回单条高光的互动统计。需要 `X-Admin-Token` 或 admin Bearer token。
+返回单条高光的互动统计。需要 `role=admin` 的 Bearer token。
 
 ### `POST /api/demo/seed`
 
-写入演示短剧、剧集和互动模板。需要 `X-Admin-Token` 或 admin Bearer token。
+写入演示短剧、剧集和互动模板。需要 `role=admin` 的 Bearer token。
 
 ## Flutter 播放端 API
 

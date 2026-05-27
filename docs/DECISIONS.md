@@ -2,7 +2,7 @@
 
 ## 2026-05-27 移动端单集上传
 
-- 移动端上传采用独立 JWT 登录体系，先服务上传账号注册和登录；后台管理接口继续保留 `X-Admin-Token`，避免一次性重构管理后台权限。
+- 移动端上传采用独立 JWT 登录体系，先服务上传账号注册和登录；后续统一收口到工作台 Bearer JWT 权限模型。
 - 上传链路先支持单集上传，不做整剧批量队列；视频文件保存到 `backend/uploads/videos/`，字幕文件保存到 `backend/uploads/subtitles/`。
 - 数据库中的 `episode.video_url` 保存服务端本地文件路径，播放端继续复用 `/api/player/episodes/{episode_id}/video` 代理，避免客户端直接访问本地文件路径。
 - 上传后只创建短剧和剧集记录，不自动触发 AI 分析；AI 识别、审核和发布仍由管理后台控制。
@@ -20,7 +20,7 @@
 
 - 后端采用 FastAPI + SQLAlchemy，默认 `sqlite:///./ignitenow.db`，同时保留 MySQL `DATABASE_URL` 配置，方便本地快速演示和后续迁移。
 - AI 高光识别 MVP 默认走本地关键词 fallback，不依赖 LLM Key；Prompt 模板和 JSON Schema 已保留给后续 LLM 接入。
-- 管理后台接口以 `X-Admin-Token` 做 MVP 基础鉴权，完整登录权限放到 P2。
+- 管理后台接口在 MVP 初期采用固定后台密钥做基础鉴权，完整登录权限放到 P2。
 - 播放端接口只返回 `published` 高光，并隐藏 `reason`、`confidence`、`status` 等后台审核字段。
 - 用户互动日志使用 `idempotency_key` 唯一约束，重复请求返回成功但不重复写入。
 - Flutter 目录以当前仓库实际 `mobile/` 为准，不新建 `mobile_flutter/`。
@@ -58,7 +58,7 @@
 - `API_BASE_URL` 仍作为最高优先级配置，可通过 `flutter run --dart-define=API_BASE_URL=...` 覆盖默认地址，方便真机或局域网演示。
 ## 2026-05-27 后端权限收口
 
-- 后台管理接口从只依赖 `X-Admin-Token` 扩展为双轨鉴权：继续兼容固定 token，同时允许 `role=admin` 的账号通过 Bearer JWT 访问，避免立即改造管理后台登录页。
+- 后台管理接口从固定后台密钥扩展为 Bearer JWT 鉴权，允许 `role=admin` 的账号访问管理能力。
 - 管理后台账号密码登录复用现有 `/api/auth/login`、`/api/auth/me` 和 `/api/auth/logout`，不另起一套 `/api/admin/auth/*`，避免移动端上传账号与后台账号出现两套重复认证服务。
 - JWT access token 第一版不做 refresh token；默认有效期调整为 120 分钟，并在登录响应中返回 `expires_in` 和嵌套 `user`，同时保留原有扁平字段兼容当前移动端上传代码。
 - `POST /api/auth/logout` 作为前端接入占位接口，不维护服务端 token 黑名单；退出登录的实际动作是前端清除本地保存的 access token。
@@ -70,5 +70,14 @@
 
 - 将远端 `feature/frontend` 合入 `dev` 时，保留 `dev` 现有后端、AI 服务、移动端、数据库和测试实现，仅替换管理后台前端为新的 Vite + React + Ant Design + React Router 工作台结构。
 - 管理后台前端入口统一为 JSX 版本：`frontend/admin_web/src/main.jsx`、`src/App.jsx` 和 `vite.config.js`；旧的 TypeScript 单文件管理台入口与 `X-Admin-Token` API client 已移除，避免两套前端入口并存。
-- `/login` 不再写入开发占位 token，改为调用后端现有 `POST /api/auth/login`，仅允许 `role=admin` 的账号进入 `/admin/*`。
+- `/login` 不再写入开发占位 token，改为调用后端现有 `POST /api/auth/login`。
 - 前端统一 Axios client 放在 `frontend/admin_web/src/services/apiClient.js`，请求自动携带 `Authorization: Bearer <access_token>`，收到 `401/403` 时清理本地登录态并跳转 `/login`。
+
+## 2026-05-27 工作台权限与路由收口
+
+- 旧 MVP 固定后台密钥方案移除，后台和工作台接口统一使用 `Authorization: Bearer <access_token>`。
+- 后端权限从单一 `require_admin` 扩展为基于角色的依赖：`admin` 和 `uploader` 都可登录工作台，接口按能力授权。
+- `admin` 可访问短剧/剧集配置、AI 分析、高光审核发布、analytics 和账号托管；`uploader` 只能访问短剧/剧集读取与配置、上传接口和 AI 分析，不能审核发布或查看综合数据。
+- 前端路由从 `/admin/*` 改为中性的 `/workspace/*`；旧 `/admin/*` 仅保留重定向到 `/workspace`，避免 uploader “进入 admin 后台”的语义错位。
+- 工作台侧边栏按登录用户 `role` 过滤菜单，手动输入无权限路由时重定向到该角色默认页面。
+- 删除固定后台密钥后，首次管理员通过 `python backend/scripts/bootstrap_admin.py` 创建；脚本仅在不存在管理员时生成一次随机密码，不会覆盖已有管理员。

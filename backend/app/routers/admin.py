@@ -17,22 +17,24 @@ from ..schemas import (
     HighlightOut,
     HighlightUpdate,
 )
+from ..services.auth_service import ADMIN_ROLE, UPLOADER_ROLE
 from ..services.highlight_service import (
     apply_highlight_update,
     assert_no_published_overlap,
     create_highlight,
 )
-from .common import ok, require_admin
+from .common import ok, require_admin, require_roles
 
 router = APIRouter()
+require_workspace_user = require_roles(ADMIN_ROLE, UPLOADER_ROLE)
 
 
-@router.get("/dramas", dependencies=[Depends(require_admin)])
+@router.get("/dramas", dependencies=[Depends(require_workspace_user)])
 def list_dramas(db: Session = Depends(get_db)):
     return ok([DramaOut.model_validate(item).model_dump() for item in db.query(Drama).order_by(Drama.id.desc()).all()])
 
 
-@router.post("/dramas", dependencies=[Depends(require_admin)])
+@router.post("/dramas", dependencies=[Depends(require_workspace_user)])
 def create_drama(payload: DramaCreate, db: Session = Depends(get_db)):
     drama = Drama(**payload.model_dump())
     db.add(drama)
@@ -41,7 +43,7 @@ def create_drama(payload: DramaCreate, db: Session = Depends(get_db)):
     return ok(DramaOut.model_validate(drama).model_dump(), "drama created")
 
 
-@router.get("/episodes", dependencies=[Depends(require_admin)])
+@router.get("/episodes", dependencies=[Depends(require_workspace_user)])
 def list_episodes(drama_id: int | None = None, db: Session = Depends(get_db)):
     query = db.query(Episode)
     if drama_id:
@@ -50,7 +52,7 @@ def list_episodes(drama_id: int | None = None, db: Session = Depends(get_db)):
     return ok([EpisodeOut.model_validate(item).model_dump() for item in episodes])
 
 
-@router.post("/episodes", dependencies=[Depends(require_admin)])
+@router.post("/episodes", dependencies=[Depends(require_workspace_user)])
 def create_episode(payload: EpisodeCreate, db: Session = Depends(get_db)):
     if not db.get(Drama, payload.drama_id):
         raise HTTPException(status_code=404, detail="drama not found")
@@ -61,7 +63,7 @@ def create_episode(payload: EpisodeCreate, db: Session = Depends(get_db)):
     return ok(EpisodeOut.model_validate(episode).model_dump(), "episode created")
 
 
-@router.post("/episodes/{episode_id}/analyze", dependencies=[Depends(require_admin)])
+@router.post("/episodes/{episode_id}/analyze", dependencies=[Depends(require_workspace_user)])
 def analyze_episode(episode_id: int, payload: AnalyzeRequest | None = None, db: Session = Depends(get_db)):
     payload = payload or AnalyzeRequest()
     episode = db.get(Episode, episode_id)
