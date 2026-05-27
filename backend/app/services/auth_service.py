@@ -13,6 +13,9 @@ from ..database import get_db
 from ..models import UserAccount
 
 security = HTTPBearer(auto_error=False)
+ADMIN_ROLE = "admin"
+UPLOADER_ROLE = "uploader"
+ALLOWED_ROLES = {ADMIN_ROLE, UPLOADER_ROLE}
 
 
 def hash_password(password: str, salt: str | None = None) -> str:
@@ -43,14 +46,9 @@ def create_access_token(user: UserAccount) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def require_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    db: Session = Depends(get_db),
-) -> UserAccount:
-    if not credentials:
-        raise HTTPException(status_code=401, detail="authentication required")
+def user_from_token(token: str, db: Session) -> UserAccount:
     try:
-        payload = jwt.decode(credentials.credentials, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         user_id = int(payload.get("sub", "0"))
     except (jwt.PyJWTError, ValueError) as exc:
         raise HTTPException(status_code=401, detail="invalid token") from exc
@@ -59,3 +57,12 @@ def require_user(
     if not user:
         raise HTTPException(status_code=401, detail="user not found")
     return user
+
+
+def require_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: Session = Depends(get_db),
+) -> UserAccount:
+    if not credentials:
+        raise HTTPException(status_code=401, detail="authentication required")
+    return user_from_token(credentials.credentials, db)

@@ -47,14 +47,28 @@ class AuthRegister(BaseModel):
     password: str = Field(min_length=6, max_length=128)
 
 
+class AuthUserCreate(AuthRegister):
+    role: str = "uploader"
+
+
 class AuthLogin(BaseModel):
     username: str
     password: str
 
 
+class AuthUserOut(BaseModel):
+    id: int
+    username: str
+    role: str
+
+
 class AuthTokenOut(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = "Bearer"
+    expires_in: int
+    user: AuthUserOut
+    # Keep the original flat fields so existing mobile upload code can
+    # continue reading the response during the admin auth transition.
     user_id: int
     username: str
     role: str

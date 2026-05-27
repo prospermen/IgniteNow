@@ -56,3 +56,12 @@
 
 - Flutter 播放端默认后端地址按运行平台区分：Web 使用 `http://localhost:8000`，Android 模拟器使用 `http://10.0.2.2:8000`。
 - `API_BASE_URL` 仍作为最高优先级配置，可通过 `flutter run --dart-define=API_BASE_URL=...` 覆盖默认地址，方便真机或局域网演示。
+## 2026-05-27 后端权限收口
+
+- 后台管理接口从只依赖 `X-Admin-Token` 扩展为双轨鉴权：继续兼容固定 token，同时允许 `role=admin` 的账号通过 Bearer JWT 访问，避免立即改造管理后台登录页。
+- 管理后台账号密码登录复用现有 `/api/auth/login`、`/api/auth/me` 和 `/api/auth/logout`，不另起一套 `/api/admin/auth/*`，避免移动端上传账号与后台账号出现两套重复认证服务。
+- JWT access token 第一版不做 refresh token；默认有效期调整为 120 分钟，并在登录响应中返回 `expires_in` 和嵌套 `user`，同时保留原有扁平字段兼容当前移动端上传代码。
+- `POST /api/auth/logout` 作为前端接入占位接口，不维护服务端 token 黑名单；退出登录的实际动作是前端清除本地保存的 access token。
+- 公开注册接口只创建 `uploader` 账号；管理员账号或其他后台托管账号只能通过已鉴权的 `POST /api/auth/admin/users` 创建，防止用户自助注册成管理员。
+- 后台审核读取接口 `GET /api/dramas`、`GET /api/episodes`、`GET /api/episodes/{episode_id}/highlights` 统一纳入后台鉴权，避免审核字段在未授权状态下暴露。
+- 播放端仍保持匿名观看和匿名互动，不强制登录；后端新增 `idempotency_key` 与 `user_id/highlight_id/action_type` 的一致性校验，非匿名 `user_id` 必须携带匹配的 Bearer token。

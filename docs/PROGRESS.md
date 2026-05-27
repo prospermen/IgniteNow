@@ -118,3 +118,20 @@
 - OCR 字幕来自视频画面识别，可能仍存在错字、漏字和重复语义；发布前需要在管理后台审核高光时间点和按钮文案。
 - 演示短剧 `逆光归来` 仍使用公开演示 MP4；主短剧 `那年冬至` 已接入本地 MP4 资源。
 - APK 打包、展示录屏和截图素材仍待完成。
+## 2026-05-27 后端权限收口
+
+### 已完成
+- 新增后台账号托管接口 `POST /api/auth/admin/users`，公开注册仍只创建 `uploader`，后台可用 `role=admin` 的 Bearer JWT 访问管理接口。
+- `require_admin` 支持 `X-Admin-Token` 和 admin Bearer token 双轨鉴权。
+- 收口账号密码登录契约：`/api/auth/login` 和 `/api/auth/me` 响应新增 `expires_in` 与嵌套 `user`，默认 JWT 有效期调整为 120 分钟，并新增无 refresh token 版本的 `POST /api/auth/logout` 占位接口。
+- `GET /api/dramas`、`GET /api/episodes`、`GET /api/episodes/{episode_id}/highlights` 已纳入后台鉴权，防止后台审核字段未授权暴露。
+- `POST /api/interactions` 新增匿名身份与 `idempotency_key` 前缀一致性校验；非匿名 `user_id` 必须携带匹配的 Bearer token。
+- 同步 `docs/API_CONTRACT.md`、`docs/DECISIONS.md` 与测试用例。
+
+### 已验证
+- `python -m compileall backend ai_service` 通过。
+- `python -m pytest tests/test_auth_permissions.py tests/test_interactions.py tests/test_analysis.py tests/test_player_api.py tests/test_uploads.py` 通过，共 20 个测试。
+
+### 遗留问题
+- 管理后台前端仍使用 `X-Admin-Token` 自动请求，尚未做账号密码登录 UI；后端已准备 admin JWT 能力。
+- 播放端仍是匿名互动，不强制用户登录；当前只做匿名身份和幂等键一致性校验。

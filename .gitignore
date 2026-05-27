@@ -66,9 +66,4 @@ local.properties
 *.jks
 *.keystore
 artifacts/delivery/.demo-pids.json
-backend/uploads/*
-!backend/uploads/.gitkeep
-!backend/uploads/videos/
-!backend/uploads/videos/.gitkeep
-!backend/uploads/subtitles/
-!backend/uploads/subtitles/.gitkeep
+>>>>>>>>> Temporary merge branch 2

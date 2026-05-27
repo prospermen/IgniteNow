@@ -27,7 +27,7 @@ from .common import ok, require_admin
 router = APIRouter()
 
 
-@router.get("/dramas")
+@router.get("/dramas", dependencies=[Depends(require_admin)])
 def list_dramas(db: Session = Depends(get_db)):
     return ok([DramaOut.model_validate(item).model_dump() for item in db.query(Drama).order_by(Drama.id.desc()).all()])
 
@@ -41,7 +41,7 @@ def create_drama(payload: DramaCreate, db: Session = Depends(get_db)):
     return ok(DramaOut.model_validate(drama).model_dump(), "drama created")
 
 
-@router.get("/episodes")
+@router.get("/episodes", dependencies=[Depends(require_admin)])
 def list_episodes(drama_id: int | None = None, db: Session = Depends(get_db)):
     query = db.query(Episode)
     if drama_id:
@@ -121,7 +121,7 @@ def analyze_episode(episode_id: int, payload: AnalyzeRequest | None = None, db: 
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/episodes/{episode_id}/highlights")
+@router.get("/episodes/{episode_id}/highlights", dependencies=[Depends(require_admin)])
 def list_highlights(episode_id: int, db: Session = Depends(get_db)):
     highlights = db.query(HighlightEvent).filter(HighlightEvent.episode_id == episode_id).order_by(HighlightEvent.start_time).all()
     return ok([HighlightOut.model_validate(item).model_dump() for item in highlights])
