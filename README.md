@@ -75,15 +75,16 @@ cd backend
 python -m app.worker
 ```
 
-DeepSeek 高光识别配置：
+### 大语言模型 (LLM) 高光识别配置：
+如果不配置，系统也能通过关键词降级运行。
 
 ```powershell
-$env:DEEPSEEK_API_KEY="你的 DeepSeek API Key"
-$env:DEEPSEEK_MODEL="deepseek-v4-flash"
-$env:DEEPSEEK_THINKING="disabled"
+$env:LLM_API_KEY="你的 LLM API Key"
+$env:LLM_BASE_URL="https://api.openai.com/v1"
+$env:LLM_MODEL="gpt-4o-mini"
 ```
 
-如果不设置 `DEEPSEEK_API_KEY`，系统会自动使用本地关键词 fallback，演示链路仍然可运行。API Key 只放在环境变量或本地 `.env`，不要提交到仓库。
+如果不设置 `LLM_API_KEY`，系统会自动使用本地关键词 fallback，演示链路仍然可运行。API Key 只放在环境变量或本地 `.env`，不要提交到仓库。
 
 验证：
 

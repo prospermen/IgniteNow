@@ -1,4 +1,4 @@
-from .deepseek_client import DeepSeekNotConfigured, analyze_with_deepseek, is_deepseek_configured
+from .llm_client import LLMNotConfigured, analyze_with_llm, is_llm_configured
 from .subtitle_parser import SubtitleCue, parse_subtitle_text
 
 
@@ -78,15 +78,15 @@ def _analyze_with_rules(cues: list[SubtitleCue]) -> dict:
     return {"highlights": highlights[:8], "provider": "fallback_rules"}
 
 
-def analyze_subtitle_text(content: str, prefer_deepseek: bool | None = None) -> dict:
+def analyze_subtitle_text(content: str, prefer_llm: bool | None = None) -> dict:
     cues = parse_subtitle_text(content)
-    should_use_deepseek = is_deepseek_configured() if prefer_deepseek is None else prefer_deepseek
-    if should_use_deepseek:
+    should_use_llm = is_llm_configured() if prefer_llm is None else prefer_llm
+    if should_use_llm:
         try:
-            result = analyze_with_deepseek(content)
-            result["provider"] = "deepseek"
+            result = analyze_with_llm(content)
+            result["provider"] = "llm"
             return result
-        except DeepSeekNotConfigured:
+        except LLMNotConfigured:
             pass
         except Exception as exc:
             fallback = _analyze_with_rules(cues)

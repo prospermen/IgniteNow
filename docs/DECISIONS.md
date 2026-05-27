@@ -32,12 +32,12 @@
 - 用户互动日志使用 `idempotency_key` 唯一约束，重复请求返回成功但不重复写入。
 - Flutter 目录以当前仓库实际 `mobile/` 为准，不新建 `mobile_flutter/`。
 
-## 2026-05-24 DeepSeek 接入
+## 2026-05-24 大语言模型 (LLM) 接入
 
-- AI 高光识别接入 DeepSeek Chat Completions，配置通过 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL`、`DEEPSEEK_MODEL`、`DEEPSEEK_THINKING`、`DEEPSEEK_TIMEOUT_SECONDS` 管理。
-- 默认模型使用 `deepseek-v4-flash`，默认关闭 thinking，优先保证 JSON 结构稳定和演示响应速度。
-- DeepSeek 调用必须输出符合 `docs/HIGHLIGHT_SCHEMA.json` 的 JSON；后端仍会进行枚举、时间范围、分数范围校验，不直接信任 LLM 输出。
-- 无 key 或 DeepSeek 调用异常时自动回退到本地关键词规则，避免演示链路被外部服务阻塞。
+- AI 高光识别采用兼容 OpenAI 规范的泛化调用，配置通过 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`、`LLM_TIMEOUT_SECONDS` 管理。
+- 默认模型使用 `gpt-4o-mini`，默认请求地址为 `https://api.openai.com/v1`，优先保证通用性，也可任意指向 DeepSeek 等其他兼容平台。
+- 大模型调用必须输出符合 `docs/HIGHLIGHT_SCHEMA.json` 的 JSON；后端仍会进行枚举、时间范围、分数范围校验，不直接信任 LLM 输出。
+- 无 key 或大模型调用异常时自动回退到本地关键词规则，避免演示链路被外部服务阻塞。
 - API Key 不进入仓库，只通过环境变量或本地未提交配置注入。
 
 ## 2026-05-24 播放端内容入口

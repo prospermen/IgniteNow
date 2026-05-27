@@ -122,13 +122,13 @@
 - 新增 React + Vite + Ant Design 管理后台最小闭环页面。
 - 新增 Flutter 播放端模型、API client、匿名用户 ID、高光触发引擎、互动浮层、基础特效和日志回传。
 - 更新 `.env.example`、`docker-compose.yml` 和 README 启动说明。
-- 新增 DeepSeek 高光识别接入配置，AI 服务可在有 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek，无 key 时继续使用 fallback。
+- 新增通用 LLM 高光识别接入配置，AI 服务可在有 `LLM_API_KEY` 时优先调用大模型，无 key 时继续使用 fallback。
 - 新增播放端短剧/剧集入口接口，Flutter 首页可从数据库中的 `drama` / `episode` 数据进入播放页。
 - 新增本地视频文件代理：数据库中的本地 MP4 路径会转换为播放端可访问的 HTTP 视频地址。
 - 已将 `D:\byte\upload\videos\E001.mp4` 到 `E006.mp4` 导入当前 SQLite 数据库，归属到短剧 `那年冬至` 的第 1-6 集；保留已完成的 `E007.mp4` 第 7 集记录。
 - `datebase/seed.sql` 已同步本地视频种子数据，重新初始化时可恢复 `那年冬至` 的 E001-E007 剧集配置。
 - 新增 OCR 字幕导入脚本 `backend/scripts/import_ocr_subtitles.py`，可将 `D:\byte\upload\subtitles` 中的 `E001_ocr.txt` 到 `E007_ocr.txt` 清洗、去重并转换为 SRT 后写入 `episode.subtitle_content`。
-- 已将 `那年冬至` E001-E007 的 OCR 字幕导入当前 SQLite 数据库，并触发 DeepSeek 分析生成后台待审核的 `draft` 高光。
+- 已将 `那年冬至` E001-E007 的 OCR 字幕导入当前 SQLite 数据库，并触发大模型分析生成后台待审核的 `draft` 高光。
 - 修复 Flutter Web 默认后端地址：浏览器端默认请求 `http://localhost:8000`，Android 模拟器仍默认请求 `http://10.0.2.2:8000`。
 - 修正当前 SQLite 和 `datebase/seed.sql` 中 `那年冬至` E001-E007 的本地视频路径，从不存在的 `D:\upload\videos` 改为实际存在的 `D:\byte\upload\videos`。
 - 已发布 `那年冬至` E001 的 8 条高光，并完成“播放端下发 published 高光 -> Flutter Web 播放触发浮层 -> 点击互动 -> 后端日志回传 -> analytics 更新”的闭环验证。
@@ -143,12 +143,12 @@
 - `npm install` 和 `npm run build` 通过；Vite 仅提示 Ant Design chunk 偏大，不影响运行。
 - `flutter pub get` 通过。
 - `flutter analyze` 通过，无静态分析问题。
-- DeepSeek 接入后验证：未配置 `DEEPSEEK_API_KEY` 时，`POST /api/episodes/1/analyze` 自动走 `fallback_rules` 并生成 3 条高光。
+- 大模型接入后验证：未配置 `LLM_API_KEY` 时，`POST /api/episodes/1/analyze` 自动走 `fallback_rules` 并生成 3 条高光。
 - 播放端入口接口验证：`GET /api/player/dramas`、`GET /api/player/dramas/1/episodes` 可返回数据库短剧和剧集数据。
 - 本地视频代理验证：`D:\byte\upload\videos\E007.mp4` 存在时，`GET /api/player/episodes/3` 返回 `/video` 代理地址，`GET /api/player/episodes/3/video` 返回 MP4 文件。
 - 本地视频批量验证：`GET /api/player/episodes/4..9` 均返回 `/video` 代理地址，`GET /api/player/episodes/{id}/video` 支持 `Range: bytes=0-1023` 并返回 `206 video/mp4`。
 - OCR 字幕导入验证：E001-E007 清洗后分别得到 89、98、51、31、66、31、75 条可解析 SRT cue，`python -m compileall backend ai_service` 通过。
-- DeepSeek live 分析验证：E001-E005/E007 各生成 8 条 `draft` 高光，E006 生成 6 条 `draft` 高光；播放端接口暂不返回这些未发布高光。
+- 大模型 live 分析验证：E001-E005/E007 各生成 8 条 `draft` 高光，E006 生成 6 条 `draft` 高光；播放端接口暂不返回这些未发布高光。
 - Flutter Web 地址验证：`flutter analyze` 和 `flutter build web` 通过；Playwright 访问 `http://localhost:62880` 时确认 `/api/player/dramas`、`/api/player/dramas/2/episodes`、`/api/player/dramas/1/episodes` 均从 `localhost:8000` 返回 200。
 - Flutter Web 播放验证：`GET /api/player/episodes/4` 返回 `/video` 代理地址，`GET /api/player/episodes/4/video` 支持 `Range` 并返回 `206 video/mp4`；Playwright 点击 E001 后确认浏览器请求视频代理成功且无请求失败。
 - E001 互动闭环验证：发布后 `GET /api/player/episodes/4` 下发 8 条高光且不暴露 `reason`、`confidence`、`status`；Playwright 跳转到首个高光时间点后触发浮层并点击按钮，`user_interaction_log` 新增 E001 的 `impression` 和 `click`，analytics 指标随之更新。

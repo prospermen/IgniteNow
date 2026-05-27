@@ -7,22 +7,22 @@ from typing import Any
 import requests
 
 
-DEFAULT_BASE_URL = "https://api.deepseek.com"
-DEFAULT_MODEL = "deepseek-v4-flash"
+DEFAULT_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_MODEL = "gpt-4o-mini"
 ALLOWED_EFFECTS = {"anger_bar", "screen_flash", "heart_rain", "boom_effect", "countdown"}
 ALLOWED_TYPES = {"conflict", "reversal", "sweet", "satisfying", "suspense"}
 
 
-class DeepSeekNotConfigured(RuntimeError):
+class LLMNotConfigured(RuntimeError):
     pass
 
 
-class DeepSeekResponseError(RuntimeError):
+class LLMResponseError(RuntimeError):
     pass
 
 
-def is_deepseek_configured() -> bool:
-    return bool(os.getenv("DEEPSEEK_API_KEY"))
+def is_llm_configured() -> bool:
+    return bool(os.getenv("LLM_API_KEY"))
 
 
 def _load_prompt_template() -> str:
@@ -46,7 +46,7 @@ def _normalize_highlight(item: dict[str, Any]) -> dict[str, Any]:
     highlight_type = str(item.get("highlight_type", "")).strip()
     effect = str(item.get("effect", "")).strip()
     if highlight_type not in ALLOWED_TYPES:
-        raise ValueError(f"illegal highlight_type from DeepSeek: {highlight_type}")
+        raise ValueError(f"illegal highlight_type from LLM: {highlight_type}")
     if effect not in ALLOWED_EFFECTS:
         effect = {
             "conflict": "anger_bar",
@@ -59,7 +59,7 @@ def _normalize_highlight(item: dict[str, Any]) -> dict[str, Any]:
     start_time = _normalize_number(item.get("start_time"), -1)
     end_time = _normalize_number(item.get("end_time"), -1)
     if start_time < 0 or end_time <= start_time:
-        raise ValueError("DeepSeek returned invalid highlight time range")
+        raise ValueError("LLM returned invalid highlight time range")
 
     confidence = max(0.0, min(1.0, _normalize_number(item.get("confidence"))))
     intensity = max(0.0, min(1.0, _normalize_number(item.get("intensity"), confidence)))
@@ -73,21 +73,20 @@ def _normalize_highlight(item: dict[str, Any]) -> dict[str, Any]:
         "intensity": intensity,
         "confidence": confidence,
         "trigger_score": trigger_score,
-        "reason": str(item.get("reason") or "DeepSeek 识别出的剧情高光"),
+        "reason": str(item.get("reason") or "LLM 识别出的剧情高光"),
         "button_text": str(item.get("button_text") or "我有感觉"),
         "effect": effect,
     }
 
 
-def analyze_with_deepseek(subtitle_payload: str) -> dict[str, list[dict[str, Any]]]:
-    api_key = os.getenv("DEEPSEEK_API_KEY")
+def analyze_with_llm(subtitle_payload: str) -> dict[str, list[dict[str, Any]]]:
+    api_key = os.getenv("LLM_API_KEY")
     if not api_key:
-        raise DeepSeekNotConfigured("DEEPSEEK_API_KEY is not configured")
+        raise LLMNotConfigured("LLM_API_KEY is not configured")
 
-    base_url = os.getenv("DEEPSEEK_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
-    model = os.getenv("DEEPSEEK_MODEL", DEFAULT_MODEL)
-    timeout = float(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", os.getenv("LLM_TIMEOUT_SECONDS", "90")))
-    thinking = os.getenv("DEEPSEEK_THINKING", "disabled").strip().lower()
+    base_url = os.getenv("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+    model = os.getenv("LLM_MODEL", DEFAULT_MODEL)
+    timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "90"))
 
     system_prompt = _load_prompt_template()
     user_prompt = (
@@ -108,8 +107,6 @@ def analyze_with_deepseek(subtitle_payload: str) -> dict[str, list[dict[str, Any
         "max_tokens": 2200,
         "stream": False,
     }
-    if thinking in {"enabled", "disabled"}:
-        payload["thinking"] = {"type": thinking}
 
     response = requests.post(
         f"{base_url}/chat/completions",
@@ -121,21 +118,21 @@ def analyze_with_deepseek(subtitle_payload: str) -> dict[str, list[dict[str, Any
         timeout=timeout,
     )
     if response.status_code >= 400:
-        raise DeepSeekResponseError(f"DeepSeek API error {response.status_code}: {response.text[:500]}")
+        raise LLMResponseError(f"LLM API error {response.status_code}: {response.text[:500]}")
 
     body = response.json()
     try:
         content = body["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise DeepSeekResponseError("DeepSeek response missing choices[0].message.content") from exc
+        raise LLMResponseError("LLM response missing choices[0].message.content") from exc
 
     parsed = json.loads(_strip_json_fence(content))
     raw_highlights = parsed.get("highlights")
     if not isinstance(raw_highlights, list):
-        raise DeepSeekResponseError("DeepSeek JSON missing highlights array")
+        raise LLMResponseError("LLM JSON missing highlights array")
 
     highlights = [_normalize_highlight(item) for item in raw_highlights if isinstance(item, dict)]
     if not highlights:
-        raise DeepSeekResponseError("DeepSeek returned no usable highlights")
+        raise LLMResponseError("LLM returned no usable highlights")
     highlights.sort(key=lambda item: (item["start_time"], -item["trigger_score"]))
     return {"highlights": highlights[:8]}

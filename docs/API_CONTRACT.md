@@ -199,14 +199,14 @@ Content-Type: multipart/form-data
 
 规则：`processing` 时拒绝重复分析；`success` 且 `force_reanalyze=false` 时返回已有数量；`force_reanalyze=true` 时重建高光。
 
-AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek；未配置或调用失败时使用本地关键词 fallback，保证演示链路可恢复。
+AI 高光识别默认逻辑：存在 `LLM_API_KEY` 时优先调用大模型；未配置或调用失败时使用本地关键词 fallback，保证演示链路可恢复。
 
 响应 `data`：
 
 ```json
 {
   "highlight_count": 3,
-  "provider": "deepseek",
+  "provider": "llm",
   "llm_error": "",
   "invalid_count": 0
 }
