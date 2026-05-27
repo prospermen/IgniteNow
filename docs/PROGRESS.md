@@ -220,3 +220,17 @@
 
 ### 遗留问题
 - `/workspace/*` 当前仍是导航和占位页面，后续需要接入短剧、剧集上传/配置、AI 分析、高光审核和看板真实数据 API。
+
+## 2026-05-28 结构化系统日志
+
+### 已完成
+- 引入 `structlog` 作为全局日志记录器，输出带有 `request_id` 的结构化 JSON 日志。
+- 实现日志三端分发：标准输出（Docker logs）、本地持久化文件（`backend/logs/ignitenow.log`）、数据库表（`system_log`）。
+- 新增 FastAPI 中间件，自动为每个请求生成 `request_id` 并记录执行时间，拦截全局未处理异常。
+- 增加 `SystemLog` 模型，并且实现日志分级过滤写入：`INFO` 级别仅输出到文件和终端，`WARNING` 及 `ERROR` 级别会同步存入数据库。
+- 新增 `GET /api/system/logs` 查询接口，供后续后台看板调阅。
+- 同步更新了 API 契约和决策文档。
+
+### 已验证
+- API 冒烟测试：访问正常的 `/health` 接口，验证 JSON 日志输出在控制台和日志文件中，且未写入数据库。
+- 异常链路拦截测试：通过 `/api/auth/login` 触发 `422 Unprocessable Entity`，验证系统准确在控制台和文件中输出 `WARNING` 级别 JSON，且正确记录到了 `SystemLog` 数据库表中。

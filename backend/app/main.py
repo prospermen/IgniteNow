@@ -6,7 +6,9 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import FileResponse
 
+from .core.logger import setup_logger
 from .database import Base, engine
+from .middleware.logging_middleware import LoggingMiddleware
 from .routers.api import router
 
 Base.metadata.create_all(bind=engine)
@@ -21,7 +23,10 @@ class SpaStaticFiles(StaticFiles):
                 return FileResponse(Path(self.directory) / "index.html")
             raise
 
+setup_logger()
+
 app = FastAPI(title="IgniteNow API", version="0.1.0")
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

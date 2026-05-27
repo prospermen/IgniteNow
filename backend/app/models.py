@@ -129,3 +129,18 @@ class JobLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     job: Mapped[Job] = relationship(back_populates="logs")
+
+
+class SystemLog(Base):
+    __tablename__ = "system_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_id: Mapped[str] = mapped_column(String(64), default="", index=True)
+    user_id: Mapped[str] = mapped_column(String(120), default="", index=True)
+    episode_id: Mapped[str] = mapped_column(String(64), default="", index=True)
+    job_id: Mapped[str] = mapped_column(String(160), default="", index=True)
+    level: Mapped[str] = mapped_column(String(32), default="info", index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    error_stack: Mapped[str] = mapped_column(Text, default="")
+    context_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

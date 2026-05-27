@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Episode, Job, JobLog
+from ..models import Episode, Job, JobLog, SystemLog
 from ..schemas import JOB_TYPES, JobCreate, JobLogOut, JobOut
 from ..services.auth_service import ADMIN_ROLE, UPLOADER_ROLE
 from ..services.job_service import create_and_enqueue_job, retry_job
@@ -84,3 +84,36 @@ def retry_failed_job(job_id: int, db: Session = Depends(get_db)):
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"failed to enqueue job: {exc}") from exc
     return ok(_job_out(retry), "job retried")
+
+
+@router.get("/logs", dependencies=[Depends(require_workspace_user)])
+def list_system_logs(
+    level: str | None = None,
+    request_id: str | None = None,
+    user_id: str | None = None,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    query = db.query(SystemLog)
+    if level:
+        query = query.filter(SystemLog.level == level)
+    if request_id:
+        query = query.filter(SystemLog.request_id == request_id)
+    if user_id:
+        query = query.filter(SystemLog.user_id == user_id)
+    
+    logs = query.order_by(SystemLog.id.desc()).limit(min(max(limit, 1), 200)).all()
+    return ok([
+        {
+            "id": item.id,
+            "request_id": item.request_id,
+            "user_id": item.user_id,
+            "episode_id": item.episode_id,
+            "job_id": item.job_id,
+            "level": item.level,
+            "message": item.message,
+            "error_stack": item.error_stack,
+            "context_json": item.context_json,
+            "created_at": item.created_at.isoformat()
+        } for item in logs
+    ])

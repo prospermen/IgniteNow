@@ -96,3 +96,9 @@
 - 第一版先接入 `ai_analyze` 任务，保留原同步 `POST /api/episodes/{episode_id}/analyze` 以兼容已有调用；后台任务页通过 `POST /api/system/jobs` 创建异步任务。
 - `ocr_import` 和 `verify_demo_chain` 作为任务类型预留，但暂不在本轮实现执行器，避免一次性改动脚本、演示验收和字幕导入链路。
 - `bootstrap_admin.py` 仍保留 CLI 冷启动方式，因为创建第一个管理员发生在无法登录后台之前，不适合作为需要登录的后台任务。
+
+## 2026-05-28 结构化系统日志
+
+- 引入 `structlog` 替换标准 `logging`，提供企业级全局 JSON 结构化日志。
+- 为了保证高并发下数据库的 I/O 性能，确立“分级落盘机制”：所有请求流水（INFO）仅写入 Docker 标准输出和本地文件映射；只有发生客户端错误（WARNING）或系统异常崩溃（ERROR）时，才会将包含完整 JSON Context 和异常堆栈的记录同步写入 PostgreSQL 的 `system_log` 表。
+- 每个请求在中间件中分配全局唯一 `request_id`，打通 HTTP 请求、报错日志和数据库之间的可观测链路。
