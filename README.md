@@ -60,11 +60,20 @@ IgniteNow/
 ### 1. 后端
 
 ```powershell
+docker compose up -d redis
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+后台 RQ worker 需要单独开一个终端运行：
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m app.worker
 ```
 
 DeepSeek 高光识别配置：
@@ -110,6 +119,17 @@ npm run dev
 ```
 
 默认访问 `http://localhost:5173`。
+
+生产环境可先构建前端，再由 FastAPI 托管 `frontend/admin_web/dist`：
+
+```powershell
+cd frontend/admin_web
+npm run build
+cd ../..
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+此时可直接访问 `http://localhost:8000/login` 和 `http://localhost:8000/workspace`。
 
 ### 3. Flutter 播放端
 
@@ -162,4 +182,4 @@ python backend/scripts/verify_demo_chain.py --skip-video-range
 
 ### 方式二：Docker Compose
 
-当前 `docker-compose.yml` 提供 MySQL 8 本地服务。后端默认 SQLite，若要切 MySQL，将 `.env` 中 `DATABASE_URL` 改为 MySQL 连接串。
+当前 `docker-compose.yml` 提供 Redis 和 MySQL 8 本地服务。后端默认 SQLite，若要切 MySQL，将 `.env` 中 `DATABASE_URL` 改为 MySQL 连接串。RQ 后台任务默认连接 `redis://localhost:6379/0`。

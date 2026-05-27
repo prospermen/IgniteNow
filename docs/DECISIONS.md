@@ -81,3 +81,11 @@
 - 前端路由从 `/admin/*` 改为中性的 `/workspace/*`；旧 `/admin/*` 仅保留重定向到 `/workspace`，避免 uploader “进入 admin 后台”的语义错位。
 - 工作台侧边栏按登录用户 `role` 过滤菜单，手动输入无权限路由时重定向到该角色默认页面。
 - 删除固定后台密钥后，首次管理员通过 `python backend/scripts/bootstrap_admin.py` 创建；脚本仅在不存在管理员时生成一次随机密码，不会覆盖已有管理员。
+
+## 2026-05-28 RQ 后台任务
+
+- 后台任务采用 RQ + Redis，不在 FastAPI 请求线程里执行耗时任务；`REDIS_URL` 和 `RQ_QUEUE_NAME` 通过环境变量配置。
+- 数据库新增 `job` 和 `job_log` 作为业务状态镜像，后台页面只读数据库状态和日志，不直接依赖 Redis 队列内部结构。
+- 第一版先接入 `ai_analyze` 任务，保留原同步 `POST /api/episodes/{episode_id}/analyze` 以兼容已有调用；后台任务页通过 `POST /api/system/jobs` 创建异步任务。
+- `ocr_import` 和 `verify_demo_chain` 作为任务类型预留，但暂不在本轮实现执行器，避免一次性改动脚本、演示验收和字幕导入链路。
+- `bootstrap_admin.py` 仍保留 CLI 冷启动方式，因为创建第一个管理员发生在无法登录后台之前，不适合作为需要登录的后台任务。

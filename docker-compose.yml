@@ -1,4 +1,11 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: ignitenow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   mysql:
     image: mysql:8.4
     container_name: ignitenow-mysql

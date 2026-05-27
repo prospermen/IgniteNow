@@ -58,6 +58,7 @@ def normalize_highlight_data(data: dict, episode: Episode | None = None) -> dict
 
 def create_highlight(db: Session, episode: Episode, payload: HighlightCreate | dict) -> HighlightEvent:
     data = payload.model_dump() if isinstance(payload, HighlightCreate) else dict(payload)
+    data["status"] = data.get("status") or "draft"
     if data.get("status") not in HIGHLIGHT_STATUSES:
         raise ValueError("illegal status")
     data = normalize_highlight_data(data, episode)

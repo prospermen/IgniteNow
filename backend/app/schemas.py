@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -5,6 +7,8 @@ HIGHLIGHT_TYPES = {"conflict", "reversal", "sweet", "satisfying", "suspense"}
 HIGHLIGHT_STATUSES = {"draft", "published", "rejected", "archived"}
 ACTION_TYPES = {"impression", "click", "ignore"}
 EFFECTS = {"anger_bar", "screen_flash", "heart_rain", "boom_effect", "countdown"}
+JOB_TYPES = {"ai_analyze", "ocr_import", "verify_demo_chain"}
+JOB_STATUSES = {"pending", "running", "success", "failed", "canceled"}
 
 
 class DramaCreate(BaseModel):
@@ -40,6 +44,42 @@ class EpisodeOut(EpisodeCreate):
 
 class AnalyzeRequest(BaseModel):
     force_reanalyze: bool = False
+
+
+class JobCreate(BaseModel):
+    type: str
+    payload: dict = Field(default_factory=dict)
+
+
+class JobRetryRequest(BaseModel):
+    force: bool = False
+
+
+class JobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    type: str
+    status: str
+    progress: float
+    payload_json: str
+    rq_job_id: str
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    error: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class JobLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    job_id: int
+    level: str
+    message: str
+    context_json: str
+    created_at: datetime
 
 
 class AuthRegister(BaseModel):

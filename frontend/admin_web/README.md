@@ -25,6 +25,7 @@
   - `/workspace/episodes`：剧集配置空白页，`admin` 和 `uploader` 可见。
   - `/workspace/analyze`：AI 高光识别空白页，`admin` 和 `uploader` 可见。
   - `/workspace/highlights`：高光审核发布空白页，仅 `admin` 可见。
+  - `/workspace/jobs`：后台任务页，`admin` 和 `uploader` 可见，可提交 RQ AI 分析任务、查看任务日志和重试已结束任务。
 - 拆分前端模块边界：
   - `src/pages/LandingPage.jsx`：概览页组件。
   - `src/pages/WorkspaceLayout.jsx`：统一工作台布局组件。
@@ -41,6 +42,7 @@
   - 剧集管理
   - AI 分析
   - 高光审核
+  - 后台任务
   - 基础看板
 - 调整 `/workspace` 侧边栏：
   - 顶部 `IgniteNow` 为静态品牌标识，不再作为返回入口页的链接。

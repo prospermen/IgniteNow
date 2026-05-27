@@ -7,6 +7,7 @@ import DashboardPage from './pages/workspace/DashboardPage.jsx';
 import DramasPage from './pages/workspace/DramasPage.jsx';
 import EpisodesPage from './pages/workspace/EpisodesPage.jsx';
 import HighlightsPage from './pages/workspace/HighlightsPage.jsx';
+import JobsPage from './pages/workspace/JobsPage.jsx';
 import { getAdminUserRole, hasAdminAccessToken } from './auth.js';
 import {
   canAccessWorkspaceModule,
@@ -82,6 +83,14 @@ function App() {
           element={
             <RequireWorkspaceRole moduleId="highlights">
               <HighlightsPage />
+            </RequireWorkspaceRole>
+          }
+        />
+        <Route
+          path="jobs"
+          element={
+            <RequireWorkspaceRole moduleId="jobs">
+              <JobsPage />
             </RequireWorkspaceRole>
           }
         />

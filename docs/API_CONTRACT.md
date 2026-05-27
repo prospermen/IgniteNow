@@ -212,6 +212,91 @@ AI 高光识别默认逻辑：存在 `DEEPSEEK_API_KEY` 时优先调用 DeepSeek
 }
 ```
 
+该接口保留同步分析语义，便于兼容已有调用。后台任务页应优先使用 `POST /api/system/jobs` 创建 RQ 异步任务。
+
+## 系统任务 API
+
+系统任务使用 RQ + Redis 执行，`job` / `job_log` 表保存后台可查询的业务状态与任务日志。第一版已接入 `ai_analyze`，`ocr_import` 和 `verify_demo_chain` 作为后续任务类型预留。
+
+### `GET /api/system/jobs`
+
+查询任务列表。需要 `admin` 或 `uploader` Bearer token。
+
+查询参数：
+
+- `status`: 可选，`pending`、`running`、`success`、`failed`、`canceled`
+- `type`: 可选，当前可用 `ai_analyze`
+- `limit`: 可选，默认 50，最大 200
+
+响应 `data`：
+
+```json
+[
+  {
+    "id": 1,
+    "type": "ai_analyze",
+    "status": "running",
+    "progress": 20,
+    "payload_json": "{\"episode_id\":1,\"force_reanalyze\":false}",
+    "rq_job_id": "rq-id",
+    "started_at": "2026-05-28T10:00:00",
+    "finished_at": null,
+    "error": "",
+    "created_at": "2026-05-28T09:59:58",
+    "updated_at": "2026-05-28T10:00:00"
+  }
+]
+```
+
+### `POST /api/system/jobs`
+
+创建并提交 RQ 任务。需要 `admin` 或 `uploader` Bearer token。
+
+```json
+{
+  "type": "ai_analyze",
+  "payload": {
+    "episode_id": 1,
+    "force_reanalyze": false
+  }
+}
+```
+
+规则：
+
+- `episode_id` 必须存在。
+- Redis/RQ 不可用时返回 `503`，并在 `job` 中记录失败状态。
+- 当前仅实现 `ai_analyze`；其他任务类型返回 `400`。
+
+### `GET /api/system/jobs/{job_id}`
+
+查询单个任务。需要 `admin` 或 `uploader` Bearer token。
+
+### `GET /api/system/jobs/{job_id}/logs`
+
+查询任务日志。需要 `admin` 或 `uploader` Bearer token。
+
+响应 `data`：
+
+```json
+[
+  {
+    "id": 1,
+    "job_id": 1,
+    "level": "info",
+    "message": "AI analysis job started",
+    "context_json": "{}",
+    "created_at": "2026-05-28T10:00:00"
+  }
+]
+```
+
+### `POST /api/system/jobs/{job_id}/retry`
+
+重试已结束任务。需要 `admin` 或 `uploader` Bearer token。
+
+仅允许重试 `failed` 状态的任务；接口会创建新的 `job` 记录，不覆盖原任务。
+
 ### `GET /api/episodes/{episode_id}/highlights`
 
 需要 `role=admin` 的 Bearer token。

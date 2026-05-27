@@ -2,6 +2,7 @@ import {
   BarChartOutlined,
   ExperimentOutlined,
   FileTextOutlined,
+  FieldTimeOutlined,
   PlaySquareOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
@@ -56,6 +57,16 @@ export const workspaceModules = [
     icon: <FileTextOutlined />,
     roles: ['admin'],
     status: '待接 API',
+  },
+  {
+    id: 'jobs',
+    path: '/workspace/jobs',
+    title: '后台任务',
+    eyebrow: 'JOBS',
+    description: '提交 AI 分析等耗时任务，查看 RQ 队列执行状态与任务日志。',
+    icon: <FieldTimeOutlined />,
+    roles: ['admin', 'uploader'],
+    status: 'RQ',
   }
 ];
 

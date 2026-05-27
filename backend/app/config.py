@@ -7,6 +7,8 @@ class Settings:
     jwt_secret: str = os.getenv("JWT_SECRET", "ignitenow-dev-secret")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "120"))
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    rq_queue_name: str = os.getenv("RQ_QUEUE_NAME", "ignitenow")
 
 
 settings = Settings()

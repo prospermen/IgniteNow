@@ -1,5 +1,33 @@
 # 开发进度
 
+## 2026-05-28 RQ 后台任务第一版
+
+### 已完成
+- 新增 RQ/Redis 配置：`REDIS_URL`、`RQ_QUEUE_NAME`，并在 `docker-compose.yml` 加入 Redis 服务。
+- 新增 `job`、`job_log` SQLAlchemy 模型和 `datebase/schema.sql` 表结构，用数据库保存任务状态、进度、错误和任务日志。
+- 抽出 AI 分析业务逻辑到 `backend/app/services/analysis_service.py`，原同步分析接口和 RQ worker 共用同一实现。
+- 新增 `/api/system/jobs`、`/api/system/jobs/{job_id}`、`/api/system/jobs/{job_id}/logs`、`/api/system/jobs/{job_id}/retry`，第一版支持创建和重试 `ai_analyze` RQ 任务。
+- 新增 RQ worker 入口 `python -m backend.app.worker`。
+- 管理后台新增 `/workspace/jobs` 页面，可提交 AI 分析任务、查看任务列表、查看任务日志和重试已结束任务。
+- FastAPI 在检测到 `frontend/admin_web/dist` 存在时托管生产前端静态文件，保留本地 Vite 开发方式。
+- 修复生产前端托管的 SPA 路由回退：`/login`、`/workspace/*` 等 React Router 路径在 FastAPI 静态托管下返回 `index.html`，缺失的真实静态资源仍返回 404。
+- 修复 AI 高光入库缺省状态：AI 输出不包含 `status` 时默认按 `draft` 入库，避免分析任务成功但全部高光因缺少状态被判为非法。
+- 同步 `docs/API_CONTRACT.md` 与 `docs/DECISIONS.md`。
+
+### 已验证
+- `env PYTHONPYCACHEPREFIX=/private/tmp/ignitenow_pycache .venv312/bin/python -m compileall backend ai_service` 通过。
+- `env PYTHONPYCACHEPREFIX=/private/tmp/ignitenow_pycache .venv312/bin/python -m pytest tests/test_jobs.py tests/test_analysis.py tests/test_auth_permissions.py tests/test_interactions.py tests/test_player_api.py tests/test_uploads.py` 通过，共 25 个测试；仍有既有 `datetime.utcnow` 弃用警告。
+- `.venv312/bin/python` 冒烟导入 `backend.app.services.job_service` 与 `backend.app.jobs.tasks` 通过，确认 RQ 相关模块可加载。
+- `npm exec eslint .` 通过。
+- `npm run build` 通过，Vite 仍提示单个 JS chunk 超过 500k，为当前 Ant Design 单包构建的既有体积提示。
+- Redis/RQ 端到端冒烟通过：使用临时 SQLite 数据库和 `ignitenow-verify` 队列，通过 `POST /api/system/jobs` 创建 `ai_analyze` 任务，Redis 队列计数为 1，`SimpleWorker` 消费后 `job.status=success`、`progress=100`，并生成 2 条 `draft` 高光和完整任务日志。
+- `env PYTHONPYCACHEPREFIX=/private/tmp/ignitenow_pycache .venv312/bin/python -m pytest tests/test_static_frontend.py tests/test_jobs.py tests/test_analysis.py` 通过，共 10 个测试，覆盖 `/login` SPA fallback 和缺失静态资源 404。
+
+### 遗留问题
+- `ocr_import` 和 `verify_demo_chain` 仅预留任务类型，执行器尚未接入。
+- 统一系统日志、`system_settings` 和 `/workspace/settings` 尚未实现。
+- 当前 RQ 第一版为单队列；服务重启时 running 任务需要依赖 RQ/worker 状态和后续补偿逻辑进一步收口。
+
 ## 2026-05-27
 
 ### 已完成

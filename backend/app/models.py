@@ -98,3 +98,34 @@ class UserInteractionLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     highlight: Mapped[HighlightEvent] = relationship(back_populates="logs")
+
+
+class Job(Base):
+    __tablename__ = "job"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    progress: Mapped[float] = mapped_column(Float, default=0)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    rq_job_id: Mapped[str] = mapped_column(String(160), default="", index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    logs: Mapped[list["JobLog"]] = relationship(back_populates="job", cascade="all, delete-orphan")
+
+
+class JobLog(Base):
+    __tablename__ = "job_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("job.id"), nullable=False, index=True)
+    level: Mapped[str] = mapped_column(String(32), default="info", index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    context_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    job: Mapped[Job] = relationship(back_populates="logs")

@@ -311,6 +311,42 @@
   color: #696969;
 }
 
+.job-create-form {
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(20, 20, 19, 0.08);
+}
+
+.job-log-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: start;
+  padding: 12px;
+  background: #f8f6f4;
+  border: 1px solid rgba(20, 20, 19, 0.08);
+  border-radius: 8px;
+}
+
+.job-log-line span {
+  color: #696969;
+  font-size: 12px;
+}
+
+.job-log-line strong {
+  grid-column: 1 / -1;
+  font-weight: 500;
+}
+
+.job-log-line pre {
+  grid-column: 1 / -1;
+  max-height: 180px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
 .workspace-table-panel .ant-table {
   color: #141413;
   background: transparent;

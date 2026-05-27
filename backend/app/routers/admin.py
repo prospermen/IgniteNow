@@ -1,6 +1,3 @@
-import sys
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -18,6 +15,7 @@ from ..schemas import (
     HighlightUpdate,
 )
 from ..services.auth_service import ADMIN_ROLE, UPLOADER_ROLE
+from ..services.analysis_service import analyze_episode_highlights
 from ..services.highlight_service import (
     apply_highlight_update,
     assert_no_published_overlap,
@@ -81,45 +79,9 @@ def analyze_episode(episode_id: int, payload: AnalyzeRequest | None = None, db: 
     if existing and episode.analyze_status == "success" and not payload.force_reanalyze:
         return ok({"highlight_count": existing}, "existing highlights returned")
 
-    episode.analyze_status = "processing"
-    episode.analyze_error = ""
-    db.commit()
-
     try:
-        repo_root = Path(__file__).resolve().parents[3]
-        sys.path.insert(0, str(repo_root))
-        from ai_service.highlight_analyzer import analyze_subtitle_text
-
-        result = analyze_subtitle_text(episode.subtitle_content or episode.subtitle_url or "")
-        if payload.force_reanalyze:
-            db.query(HighlightEvent).filter(HighlightEvent.episode_id == episode_id).delete()
-
-        created: list[HighlightEvent] = []
-        invalid_reasons: list[str] = []
-        for item in result["highlights"]:
-            try:
-                highlight = create_highlight(db, episode, item)
-            except ValueError as exc:
-                invalid_reasons.append(str(exc))
-                continue
-            created.append(highlight)
-
-        episode.analyze_status = "success"
-        episode.analyze_error = "; ".join(invalid_reasons[:3])
-        db.commit()
-        return ok(
-            {
-                "highlight_count": len(created),
-                "provider": result.get("provider", "unknown"),
-                "llm_error": result.get("llm_error", ""),
-                "invalid_count": len(invalid_reasons),
-            },
-            "analysis completed",
-        )
+        return ok(analyze_episode_highlights(db, episode, payload.force_reanalyze), "analysis completed")
     except Exception as exc:
-        episode.analyze_status = "failed"
-        episode.analyze_error = str(exc)
-        db.commit()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 

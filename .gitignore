@@ -39,6 +39,7 @@ temp/
 .cache/
 .dev/
 .serena/
+.venv*/
 
 # ===================
 # 构建产物
