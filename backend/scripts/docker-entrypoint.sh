@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-# Run the bootstrap script to ensure the database and admin user are initialized
-python backend/scripts/bootstrap_admin.py
+# Only run the bootstrap script if we are starting the main web server (uvicorn)
+# This prevents race conditions when the worker container starts concurrently
+if [[ "$1" == "uvicorn" ]]; then
+    python backend/scripts/bootstrap_admin.py
+fi
 
-# Execute the main container command (e.g., uvicorn or rq worker)
+# Execute the main container command
 exec "$@"

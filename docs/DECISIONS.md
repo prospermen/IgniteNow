@@ -1,5 +1,12 @@
 # 技术决策记录
 
+## 2026-05-28 数据库引擎切换至 PostgreSQL
+
+- 为了更好地支撑极高并发的互动回传（曝光、点击等日志），将项目主推的生产级关系型数据库由 MySQL 变更为 PostgreSQL。
+- 考虑到当前项目在 `database.py` 中使用的是同步引擎 `create_engine`，为了保证最小侵入性和最大兼容性，选用 `psycopg2-binary` 同步驱动平替 `pymysql`。
+- 采用容器化 PostgreSQL 时，为了解决初始化数据表的并发冲突（`app` 容器和 `worker` 容器同时执行建表脚本），强制收口建表权限：仅在 `docker-entrypoint.sh` 检测到启动命令为 `uvicorn` 时执行 `bootstrap_admin.py`。
+- `docker-compose.yml` 引入标准的容器健康检查 (`healthcheck`) 机制解决数据库连接的冷启动时序问题。
+
 ## 2026-05-27 移动端单集上传
 
 - 移动端上传采用独立 JWT 登录体系，先服务上传账号注册和登录；后续统一收口到工作台 Bearer JWT 权限模型。

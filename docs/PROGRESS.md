@@ -1,5 +1,17 @@
 # 开发进度
 
+## 2026-05-28 数据库迁移与并发修复
+
+### 已完成
+- 将底层容器化数据库从 MySQL 切换为 PostgreSQL，在 `docker-compose.yml` 中使用 `postgres:15-alpine` 镜像并配置了专属持久化卷。
+- 更新 Python 数据库驱动，移除 `pymysql` 并引入 `psycopg2-binary`，无缝对接现有 SQLAlchemy 通用模型层。
+- 在 `docker-compose.yml` 中引入 `healthcheck`，确保应用容器和 Worker 容器在 PostgreSQL 完全就绪后再建立连接，杜绝了经典的 `Connection refused` 报错。
+- 修复并发建表竞争导致 PostgreSQL 抛出 `UniqueViolation (duplicate key value violates unique constraint "pg_class_relname_nsp_index")` 异常的问题：修改 `docker-entrypoint.sh`，仅在主进程 `uvicorn` 启动时执行 `bootstrap_admin.py` 建表，`worker` 进程自动跳过。
+
+### 已验证
+- `docker compose down -v` 清除旧数据卷后执行 `docker compose up --build -d`，容器构建和启动完全正常，无互相抢占建表报错。
+- `docker compose logs app | grep "admin password"` 成功捕获到了初始化管理员密码的输出。
+
 ## 2026-05-28 RQ 后台任务第一版
 
 ### 已完成

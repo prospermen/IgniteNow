@@ -48,11 +48,11 @@ IgniteNow/
 
 | 模块 | 技术 |
 |---|---|
-| 后端服务 | FastAPI + SQLAlchemy，默认 SQLite，本地可切 MySQL |
+| 后端服务 | FastAPI + SQLAlchemy，本地可用 PostgreSQL |
 | AI 服务 | Python 字幕解析 + 关键词 fallback，高光 JSON Schema 校验 |
 | Web 工作台 | React + Vite + Ant Design |
 | 移动端 | Flutter + video_player + http + shared_preferences |
-| 数据库 | SQLite / MySQL，核心 SQL 位于 `datebase/` |
+| 数据库 | PostgreSQL（推荐）/ SQLite，核心 SQL 位于 `datebase/` |
 
 ## 本地启动
 
@@ -181,7 +181,7 @@ python backend/scripts/verify_demo_chain.py --skip-video-range
 
 ### 方式二：Docker Compose (推荐)
 
-使用 Docker Compose 一键启动完整环境（FastAPI 后端、RQ Worker、Redis、MySQL）。
+使用 Docker Compose 一键启动完整环境（FastAPI 后端、RQ Worker、Redis、PostgreSQL）。
 
 ```bash
 # 复制环境变量文件
@@ -190,10 +190,10 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-注：由于使用 Compose 编排，各服务都在同一个 Docker 虚拟网络下，因此**请务必将刚生成的 `.env` 文件中的 `REDIS_URL` 修改为 `redis://redis:6379/0`**。若要切 MySQL，将 `DATABASE_URL` 改为 MySQL 连接串。
+注：由于使用 Compose 编排，各服务都在同一个 Docker 虚拟网络下，配置中已默认将 `DATABASE_URL` 指向内部的 `postgres` 容器，并将 `REDIS_URL` 设为 `redis://redis:6379/0`。
 
 ## 访问
-在浏览器中打开 `http://YOUR_SERVER_IP:5173`
+在浏览器中打开 `http://YOUR_SERVER_IP:8000`
 
 如果 admin 密码是自动生成的，在 log 中查找:
 ```bash
