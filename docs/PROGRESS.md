@@ -13,6 +13,9 @@
 - 修复生产前端托管的 SPA 路由回退：`/login`、`/workspace/*` 等 React Router 路径在 FastAPI 静态托管下返回 `index.html`，缺失的真实静态资源仍返回 404。
 - 修复 AI 高光入库缺省状态：AI 输出不包含 `status` 时默认按 `draft` 入库，避免分析任务成功但全部高光因缺少状态被判为非法。
 - 同步 `docs/API_CONTRACT.md` 与 `docs/DECISIONS.md`。
+- 新增根目录 `Dockerfile`，采用 Node 构建管理后台、Python 运行 FastAPI 的多阶段镜像；同一镜像可通过默认命令启动 Web/API，也可覆盖命令运行 RQ worker。
+- 更新 `.dockerignore`，排除本地虚拟环境、依赖目录、测试和构建产物，减少 Docker build context。
+- 更新 `README.md`，补充 Docker 镜像构建、运行 API/Web 和启动 RQ worker 的命令。
 
 ### 已验证
 - `env PYTHONPYCACHEPREFIX=/private/tmp/ignitenow_pycache .venv312/bin/python -m compileall backend ai_service` 通过。
@@ -22,6 +25,7 @@
 - `npm run build` 通过，Vite 仍提示单个 JS chunk 超过 500k，为当前 Ant Design 单包构建的既有体积提示。
 - Redis/RQ 端到端冒烟通过：使用临时 SQLite 数据库和 `ignitenow-verify` 队列，通过 `POST /api/system/jobs` 创建 `ai_analyze` 任务，Redis 队列计数为 1，`SimpleWorker` 消费后 `job.status=success`、`progress=100`，并生成 2 条 `draft` 高光和完整任务日志。
 - `env PYTHONPYCACHEPREFIX=/private/tmp/ignitenow_pycache .venv312/bin/python -m pytest tests/test_static_frontend.py tests/test_jobs.py tests/test_analysis.py` 通过，共 10 个测试，覆盖 `/login` SPA fallback 和缺失静态资源 404。
+- `docker build -t ignitenow-app:verify .` 通过；`docker run -d --rm --name ignitenow-app-verify -p 18080:8000 ignitenow-app:verify` 后验证 `/health` 返回 200、`/login` 返回 200 HTML、前端 CSS 静态资源返回 200。
 
 ### 遗留问题
 - `ocr_import` 和 `verify_demo_chain` 仅预留任务类型，执行器尚未接入。

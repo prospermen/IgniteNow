@@ -1,4 +1,15 @@
 services:
+  app:
+    build: .
+    ports:
+      - "8010:8010"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/logs:/app/backend/logs
+    depends_on:
+      - redis
   redis:
     image: redis:7-alpine
     container_name: ignitenow-redis

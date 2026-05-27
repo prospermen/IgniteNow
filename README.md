@@ -183,3 +183,18 @@ python backend/scripts/verify_demo_chain.py --skip-video-range
 ### 方式二：Docker Compose
 
 当前 `docker-compose.yml` 提供 Redis 和 MySQL 8 本地服务。后端默认 SQLite，若要切 MySQL，将 `.env` 中 `DATABASE_URL` 改为 MySQL 连接串。RQ 后台任务默认连接 `redis://localhost:6379/0`。
+
+### 方式三：Docker 镜像
+
+根目录 `Dockerfile` 会先构建管理后台 `frontend/admin_web/dist`，再打包 FastAPI 后端，由 FastAPI 托管生产前端。
+
+```bash
+docker build -t ignitenow-app .
+docker run --rm -p 8000:8000 --env-file .env ignitenow-app
+```
+
+同一个镜像也可以启动 RQ worker：
+
+```bash
+docker run --rm --env-file .env ignitenow-app python -m backend.app.worker
+```
