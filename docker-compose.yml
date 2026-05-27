@@ -2,7 +2,7 @@ services:
   app:
     build: .
     ports:
-      - "8010:8010"
+      - "8000:8000"
     env_file:
       - .env
     volumes:
@@ -16,6 +16,18 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+
+  worker:
+    build: .
+    container_name: ignitenow-worker
+    command: python -m backend.app.worker
+    env_file:
+      - .env
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/logs:/app/backend/logs
+    depends_on:
+      - redis
 
   mysql:
     image: mysql:8.4

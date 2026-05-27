@@ -46,7 +46,7 @@ def main() -> int:
 
     print("Created first admin account.")
     print(f"username: {username}")
-    print(f"password: {password}")
+    print(f"admin password: {password}")
     print("Store this password now. It will not be shown again.")
     return 0
 

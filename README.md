@@ -54,7 +54,6 @@ IgniteNow/
 | 移动端 | Flutter + video_player + http + shared_preferences |
 | 数据库 | SQLite / MySQL，核心 SQL 位于 `datebase/` |
 
-
 ## 本地启动
 
 ### 1. 后端
@@ -180,21 +179,23 @@ python backend/scripts/verify_demo_chain.py --skip-video-range
 
 ### 方式一：脚本安装
 
-### 方式二：Docker Compose
+### 方式二：Docker Compose (推荐)
 
-当前 `docker-compose.yml` 提供 Redis 和 MySQL 8 本地服务。后端默认 SQLite，若要切 MySQL，将 `.env` 中 `DATABASE_URL` 改为 MySQL 连接串。RQ 后台任务默认连接 `redis://localhost:6379/0`。
-
-### 方式三：Docker 镜像
-
-根目录 `Dockerfile` 会先构建管理后台 `frontend/admin_web/dist`，再打包 FastAPI 后端，由 FastAPI 托管生产前端。
+使用 Docker Compose 一键启动完整环境（FastAPI 后端、RQ Worker、Redis、MySQL）。
 
 ```bash
-docker build -t ignitenow-app .
-docker run --rm -p 8000:8000 --env-file .env ignitenow-app
+# 复制环境变量文件
+cp .env.example .env
+# 启动服务
+docker compose up --build -d
 ```
 
-同一个镜像也可以启动 RQ worker：
+注：由于使用 Compose 编排，各服务都在同一个 Docker 虚拟网络下，因此**请务必将刚生成的 `.env` 文件中的 `REDIS_URL` 修改为 `redis://redis:6379/0`**。若要切 MySQL，将 `DATABASE_URL` 改为 MySQL 连接串。
 
+## 访问
+在浏览器中打开 `http://YOUR_SERVER_IP:5173`
+
+如果 admin 密码是自动生成的，在 log 中查找:
 ```bash
-docker run --rm --env-file .env ignitenow-app python -m backend.app.worker
+docker compose logs app | grep "admin password"
 ```
