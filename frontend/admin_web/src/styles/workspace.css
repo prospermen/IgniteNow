@@ -1076,6 +1076,114 @@
   font-weight: 500;
 }
 
+.settings-page {
+  display: grid;
+  min-width: 0;
+}
+
+.settings-tabs-shell {
+  min-width: 0;
+  padding: 18px;
+  background: #fcfbfa;
+  border: 1px solid rgba(20, 20, 19, 0.08);
+  border-radius: 20px;
+}
+
+.settings-tabs .ant-tabs-nav {
+  align-items: center;
+  margin-top: -15px;
+  margin-bottom: 13px;
+}
+
+.settings-tabs .ant-tabs-nav-wrap {
+  flex: 0 1 auto;
+}
+
+.settings-tabs .ant-tabs-nav-list {
+  width: max-content;
+}
+
+.settings-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-panel {
+  display: grid;
+  min-width: 0;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid rgba(20, 20, 19, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.settings-grid .ant-form-item {
+  min-width: 0;
+  min-height: 64px;
+  margin-bottom: 0;
+  padding: 14px 18px;
+  background: #fcfbfa;
+  border-bottom: 1px solid rgba(20, 20, 19, 0.08);
+}
+
+.settings-grid .ant-form-item-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 320px);
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.settings-grid .ant-form-item:last-child {
+  border-bottom: 0;
+}
+
+.settings-grid .ant-form-item-label {
+  flex: none;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+.settings-grid .ant-form-item-label > label {
+  height: auto;
+  color: #141413;
+  font-weight: 500;
+}
+
+.settings-grid .ant-form-item-control {
+  flex: none;
+  min-width: 0;
+  justify-self: end;
+  align-items: flex-end;
+}
+
+.settings-grid .ant-form-item-control-input {
+  width: 100%;
+}
+
+.settings-grid .ant-form-item-control-input-content {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.settings-grid .ant-input-number,
+.settings-grid .ant-select,
+.settings-grid .ant-input {
+  width: 200px;
+  max-width: 100%;
+}
+
+.settings-grid .ant-switch {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 1100px) {
   .workspace-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1160,6 +1268,15 @@
   .production-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid .ant-form-item-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .content-toolbar {

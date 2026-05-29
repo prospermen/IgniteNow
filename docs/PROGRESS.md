@@ -34,6 +34,20 @@
 ### 遗留问题
 - AI 任务详情页的生成摘要目前复用现有 `job.payload_json`、剧集高光计数和任务日志；如果后续要展示 provider、invalid_count、LLM 原始错误等更精细结果，应在 job 或独立 analysis_run 表中持久化分析结果摘要。
 
+## 2026-05-30 系统设置 UI 草案
+
+### 已完成
+- 将 `/workspace/settings` 从空占位页改为系统设置 UI 草案，面向 `admin` 展示可讨论的配置项和交互形态。
+- 设置页按 `AI 配置`、`审核规则`、`播放端`、`上传限制`、`安全` 五组组织，使用 Switch、Input、InputNumber 和 Select 表达真实配置控件。
+- 保存按钮仅提示“设置保存接口尚未接入”，不伪造后端持久化能力；当前页面用于确认配置项是否需要进入后续实现。
+
+### 已验证
+- `npm exec eslint .` 通过。
+- `npm run build` 在 `frontend/admin_web` 下通过；Vite 仍提示 Ant Design 单个 chunk 超过 500k，为既有体积提示。
+
+### 遗留问题
+- 系统设置尚未接入 `system_settings` 数据表或后端保存接口；后续确认配置项后再补真实读写和生效逻辑。
+
 ## 2026-05-30 Python 3.9 类型标注兼容
 
 ### 已完成
