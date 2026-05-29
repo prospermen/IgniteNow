@@ -1,5 +1,20 @@
 # 开发进度
 
+## 2026-05-29 README 校正与补全
+
+### 已完成
+- 校正根目录 `README.md`，保留原有章节顺序和部署方式结构，补全脚本安装、Docker Compose、源码编译、访问地址、首次管理员账号和常用验证命令。
+- 校正 `frontend/admin_web/README.md`，同步当前 `/workspace/*` 路由、JWT 登录、角色过滤、后台任务页接入状态和仍未完成的业务页面。
+- 修正 `.env.example` 中 Docker Compose 默认 `REDIS_URL` 为 `redis://redis:6379/0`，本地源码调试时再改用 `redis://localhost:6379/0`。
+- 将 Docker Compose 的主服务端口、PostgreSQL 端口、Redis 端口和 PostgreSQL 用户/密码/库名改为 `.env` 可配置，并同步 README 示例。
+
+### 已验证
+- 对照 `docker-compose.yml`、`Dockerfile`、`backend/scripts/docker-entrypoint.sh`、`backend/scripts/bootstrap_admin.py`、前端 `package.json` 和当前路由配置核对 README 命令与服务名。
+- 使用 `rg` 检查根目录和前端 README 中的旧鉴权、旧路由、错误服务名和占位标题；使用 `git diff --check` 检查本次文档改动无空白错误。
+
+### 遗留问题
+- README 仅描述当前真实状态；自动创建管理员账号的环境开关尚未实现。
+
 ## 2026-05-28 数据库迁移与并发修复
 
 ### 已完成

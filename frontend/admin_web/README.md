@@ -1,6 +1,6 @@
 # IgniteNow Admin Web
 
-`frontend/admin_web/` 是 IgniteNow 的 Web 工作台前端模块。当前已完成 `P0-WEB-01` 的工程初始化，并完成 `/` 概览页视觉体验打磨；`/workspace` 作为后续承载真实功能的统一工作台骨架保留。
+`frontend/admin_web/` 是 IgniteNow 的 Web 入口页和工作台前端模块。当前已完成 Vite + React + Ant Design 工程初始化、`/` 产品入口页、`/login` JWT 登录页和 `/workspace/*` 工作台骨架；多数业务页面仍是占位，后台任务页已开始接入真实 RQ 任务接口。
 
 ## 当前已完成
 
@@ -20,7 +20,7 @@
   - `/`：介绍型概览页，负责说明产品价值、项目亮点、核心闭环和应用场景。
   - `/login`：JWT 登录页，调用后端 `POST /api/auth/login`，根据 `role` 进入对应工作台页面。
   - `/workspace`：受前端访问守卫保护；无本地 access token 时会重定向到 `/login`，有 token 时按角色跳转默认页。
-  - `/workspace/dashboard`：仪表盘空白页，仅 `admin` 可见。
+  - `/workspace/dashboard`：仪表盘空白页，仅 `admin` 可见；后续接入 analytics overview。
   - `/workspace/dramas`：短剧管理空白页，仅 `admin` 可见。
   - `/workspace/episodes`：剧集配置空白页，`admin` 和 `uploader` 可见。
   - `/workspace/analyze`：AI 高光识别空白页，`admin` 和 `uploader` 可见。
@@ -37,13 +37,13 @@
   - `src/styles/base.css`：全局基础样式。
   - `src/styles/landing.css`：概览页样式和动效。
   - `src/styles/workspace.css`：后台工作台样式。
-- 在 `/workspace` 中加入 P0 后续功能导航：
+- 在 `/workspace` 中加入当前工作台导航：
   - 短剧管理
-  - 剧集管理
-  - AI 分析
+  - 剧集配置
+  - AI 高光识别
   - 高光审核
   - 后台任务
-  - 基础看板
+  - 仪表盘
 - 调整 `/workspace` 侧边栏：
   - 顶部 `IgniteNow` 为静态品牌标识，不再作为返回入口页的链接。
   - 副标识改为版本号 `v0.1`。
@@ -105,6 +105,35 @@ JWT 登录认证方案、前后端联动方式和后续接入提醒，见：
 frontend/admin_web/AUTHENTICATION.md
 ```
 
+## 后端依赖
+
+登录页和工作台业务接口依赖后端服务。默认后端地址为：
+
+```text
+http://localhost:8000
+```
+
+可通过 `VITE_API_BASE_URL` 覆盖：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000 npm run dev
+```
+
+Windows PowerShell：
+
+```powershell
+$env:VITE_API_BASE_URL="http://localhost:8000"
+npm run dev
+```
+
+如果还没有管理员账号，需要先在仓库根目录运行：
+
+```bash
+python backend/scripts/bootstrap_admin.py
+```
+
+Docker Compose 启动时，`app` 容器会自动执行该脚本；脚本只会在不存在管理员时创建第一个 `admin`，不会覆盖已有管理员密码。
+
 ## 本地启动
 
 第一次启动前先安装依赖：
@@ -123,6 +152,18 @@ npm run dev
 
 ```text
 http://localhost:5173/
+```
+
+登录页：
+
+```text
+http://localhost:5173/login
+```
+
+工作台：
+
+```text
+http://localhost:5173/workspace
 ```
 
 ## 常用命令
@@ -147,13 +188,14 @@ npm run preview
 
 ## 已验证结果
 
-截至 2026-05-26，已完成以下验证：
+截至 2026-05-29，已完成以下验证：
 
 - `npm install` 成功。
 - `npm exec eslint .` 通过。
 - `npm run build` 通过。
-- `npm run dev -- --host 127.0.0.1` 启动后，`http://127.0.0.1:5173/` 返回 HTTP 200。
 - `/workspace` 已接入 React Router，并按角色自动跳转默认页面。
+- `src/services/apiClient.js` 会自动注入 `Authorization: Bearer <access_token>`。
+- `/workspace/jobs` 已接入 `POST /api/system/jobs`、任务列表、日志查看和失败任务重试。
 
 当前构建产物中 JS 约 836 kB，Vite 会提示 chunk 超过 500 kB。该提示主要来自当前单包构建与 Ant Design 依赖体积，不影响本地运行；等页面和路由变多后，可通过动态 import、路由级拆分或 manual chunks 优化。
 
@@ -163,31 +205,30 @@ npm run preview
 
 | ID | 内容 | 当前状态 |
 |---|---|---|
-| `P0-WEB-02` | API client 封装，统一 Axios service，并自动携带 Bearer JWT | 已完成认证基础封装，业务 API 待接 |
+| `P0-WEB-02` | API client 封装，统一 Axios service，并自动携带 Bearer JWT | 已完成 |
 | `P0-WEB-03` | 短剧列表/创建页 | 未完成 |
 | `P0-WEB-04` | 剧集列表/创建页，支持视频 URL、字幕 URL/字幕内容 | 未完成 |
-| `P0-WEB-05` | AI 分析触发按钮 | 未完成 |
+| `P0-WEB-05` | AI 分析触发按钮 | 部分完成：后台任务页可提交 AI 分析任务，独立分析页仍未接业务 UI |
 | `P0-WEB-06` | 高光审核页，支持查看、编辑、发布、驳回 | 未完成 |
-| `P0-WEB-07` | 基础看板页，展示 overview 指标 | 未完成 |
+| `P0-WEB-07` | 仪表盘页，展示 overview 指标 | 未完成 |
 
 ## 尚未完成
 
-- 已接入后端 JWT 登录 API，但后台业务页面仍未接入真实数据 API。
+- 已接入后端 JWT 登录 API，但短剧、剧集、高光审核和仪表盘页面仍未接入真实数据 API。
 - 已实现统一 Axios client，并自动注入 `Authorization: Bearer <access_token>`。
-- 尚未配置模块内 `.env.example`；后端 API 地址可通过 `VITE_API_BASE_URL` 覆盖，默认 `http://localhost:8000`。
 - 当前 `/workspace` 只是工作台骨架，不具备真实创建、编辑、发布或查询能力。
-- 已引入 `react-router-dom`；当前 `/workspace/*` 页面内容区留空，仅保留工作台框架、侧边导航和顶部标题描述。
+- 已引入 `react-router-dom`；除 `/workspace/jobs` 外，当前 `/workspace/*` 页面内容区留空，仅保留工作台框架、侧边导航和顶部标题描述。
 - 尚未实现错误提示、加载态、空状态、表单校验和接口异常处理。
 - 尚未实现端到端验收链路。
 - 概览页已完成当前阶段视觉打磨，后续若继续调整，应优先保持 `LandingPage.jsx` 与 `landing.css` 内聚，避免影响 `/workspace` 工作台样式。
 
 ## 后续开发建议
 
-下一步建议优先做 `P0-WEB-02`：
+下一步建议优先做短剧和剧集业务页：
 
-1. 新增模块内 `.env.example` 或环境变量说明，约定 `VITE_API_BASE_URL`。
-2. 在 `src/services/` 下继续补齐短剧、剧集、高光和看板 API 方法。
-3. 根据 `docs/API_CONTRACT.md` 中的后端契约实现具体业务页面。
-4. 对 `/workspace/*` 页面补加载态、空状态、错误态和 401/403 行为验收。
+1. 在 `src/services/` 下继续补齐短剧、剧集、高光和看板 API 方法。
+2. 根据 `docs/API_CONTRACT.md` 中的后端契约实现具体业务页面。
+3. 对 `/workspace/*` 页面补加载态、空状态、错误态和 401/403 行为验收。
+4. 将 `dashboard` 接入 `/api/analytics/overview`，并保持仅 `admin` 可见。
 
 注意：修改 API 字段、请求体或响应体前，必须先同步 `docs/API_CONTRACT.md`；高光 JSON 结构以 `docs/HIGHLIGHT_SCHEMA.json` 为准。

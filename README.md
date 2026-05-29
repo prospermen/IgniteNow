@@ -19,6 +19,220 @@
 
 详见 [docs/PROGRESS.md](docs/PROGRESS.md)
 
+## 技术栈
+
+| 模块 | 技术栈 |
+|---|---|
+| 后端 | FastAPI + SQLAlchemy + PostgreSQL |
+| 前端 | React + Vite + Ant Design |
+| AI 服务 | Python |
+| 移动端 | Flutter + video_player + http + shared_preferences |
+| 后台任务 | Redis + RQ |
+| 日志 | structlog |
+
+## 部署方式
+
+### 方式一：脚本安装
+
+适合已经在本机安装 Python、Node.js、Flutter、Redis 和数据库服务的开发环境。
+
+#### 前置条件
+
+- Python 3.12
+- Node.js 22 或兼容版本
+- Flutter SDK
+- Redis
+- PostgreSQL 或 SQLite
+
+#### 快速开始
+
+复制环境变量文件：
+
+```bash
+cp .env.example .env
+```
+
+如果使用本机 Redis 和 SQLite，可在 `.env` 中改为：
+
+```env
+DATABASE_URL=sqlite:///./ignitenow.db
+REDIS_URL=redis://localhost:6379/0
+```
+
+安装并启动后端：
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+启动 worker：
+
+```bash
+python -m backend.app.worker
+```
+
+首次没有管理员账号时，运行：
+
+```bash
+python backend/scripts/bootstrap_admin.py
+```
+
+启动前端开发服务：
+
+```bash
+cd frontend/admin_web
+npm install
+npm run dev
+```
+
+#### 常用命令
+
+```bash
+python -m compileall backend ai_service
+python -m pytest tests
+cd frontend/admin_web
+npm exec eslint .
+npm run build
+```
+
+### 方式二：Docker Compose (推荐)
+
+使用 Docker Compose 部署，包含 FastAPI App、RQ Worker、Redis 和 PostgreSQL 容器。
+
+#### 前置条件
+
+- Docker
+- Docker Compose
+
+#### 快速开始
+```bash
+# 复制环境变量文件
+cp .env.example .env
+
+# 按需修改环境变量
+nano .env
+
+# 启动服务
+docker compose up --build -d
+
+# 查看后端日志
+docker compose logs -f app
+
+# 查看 worker 日志
+docker compose logs -f worker
+```
+
+#### `.env` 配置项
+
+```env
+# 主服务对外端口。容器内仍固定监听 8000；这里控制宿主机访问端口。
+APP_PORT=8000
+
+# 后端静态资源基础地址，默认指向当前 FastAPI 服务。
+# 如果 APP_PORT 改成 8080，这里应改为 http://localhost:8080/static。
+STATIC_BASE_URL=http://localhost:8000/static
+
+# PostgreSQL 对外端口。只影响宿主机访问端口，不影响容器内服务名。
+POSTGRES_PORT=5432
+
+# PostgreSQL 容器用户名。
+POSTGRES_USER=postgres
+
+# PostgreSQL 容器密码。生产环境必须修改。
+POSTGRES_PASSWORD=your_secure_password_here
+
+# PostgreSQL 数据库名。
+POSTGRES_DB=ignitenow
+
+# 数据库连接。Docker Compose 内部访问 postgres 服务时使用这个地址。
+# 如果修改了 POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB，这里也要同步修改。
+DATABASE_URL=postgresql://postgres:password@postgres:5432/ignitenow
+
+
+# Redis 对外端口。只影响宿主机访问端口，不影响 app/worker 访问 Redis。
+REDIS_PORT=6379
+
+# Redis 连接。Docker Compose 内部访问 redis 服务时使用这个地址。
+REDIS_URL=redis://redis:6379/0
+
+# JWT 签名密钥。
+JWT_SECRET=your_jwt_secret_here
+
+# JWT 签名算法，当前后端默认使用 HS256。
+JWT_ALGORITHM=HS256
+
+# access token 有效期，单位：分钟。
+JWT_EXPIRE_MINUTES=120
+
+# RQ 队列名称，app 和 worker 必须保持一致。
+RQ_QUEUE_NAME=ignitenow
+
+# LLM 请求超时时间，单位：秒。
+LLM_TIMEOUT_SECONDS=90
+
+# LLM API Key。留空时 AI 分析会走本地 fallback 规则。
+LLM_API_KEY=
+
+# 兼容 OpenAI 协议的 LLM 服务地址。
+LLM_BASE_URL=https://api.openai.com/v1
+
+# LLM 模型名称。
+LLM_MODEL=gpt-4o-mini
+
+# 前端本地开发时访问的后端地址。
+# 如果 APP_PORT 改成 8080，这里应改为 http://localhost:8080。
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+### 方式三：从源码编译
+
+前端生产包由 `Dockerfile` 自动构建并托管到 FastAPI；如果本地手动编译，可执行：
+
+```bash
+cd frontend/admin_web
+npm install
+npm run build
+```
+
+构建完成后，后端会在检测到 `frontend/admin_web/dist` 存在时托管生产前端静态文件：
+
+```bash
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+## 访问
+
+Docker Compose 或生产镜像启动后，在浏览器中打开：
+
+- 产品入口页：`http://YOUR_SERVER_IP:8000/`
+- 登录页：`http://YOUR_SERVER_IP:8000/login`
+- 工作台：`http://YOUR_SERVER_IP:8000/workspace`
+- 健康检查：`http://YOUR_SERVER_IP:8000/health`
+
+本地 Vite 开发服务默认访问：
+
+- 产品入口页：`http://localhost:5173/`
+- 登录页：`http://localhost:5173/login`
+- 工作台：`http://localhost:5173/workspace`
+
+如果 admin 密码是自动生成的，在 log 中查找：
+```bash
+docker compose logs app
+```
+
+macOS / Linux 可使用：
+
+```bash
+docker compose logs app | grep "admin password"
+```
+
+Windows PowerShell 可使用：
+
+```powershell
+docker compose logs app | Select-String "admin password"
+```
+
 ## 项目架构
 
 ```text
@@ -42,161 +256,4 @@ IgniteNow/
 ├── .gitignore
 ├── AGENTS.md
 └── README.md
-```
-
-## 技术栈
-
-| 模块 | 技术 |
-|---|---|
-| 后端服务 | FastAPI + SQLAlchemy，本地可用 PostgreSQL |
-| AI 服务 | Python 字幕解析 + 关键词 fallback，高光 JSON Schema 校验 |
-| Web 工作台 | React + Vite + Ant Design |
-| 移动端 | Flutter + video_player + http + shared_preferences |
-| 数据库 | PostgreSQL（推荐）/ SQLite，核心 SQL 位于 `datebase/` |
-
-## 本地启动
-
-### 1. 后端
-
-```powershell
-docker compose up -d redis
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-后台 RQ worker 需要单独开一个终端运行：
-
-```powershell
-cd backend
-.\.venv\Scripts\Activate.ps1
-python -m app.worker
-```
-
-### 大语言模型 (LLM) 高光识别配置：
-如果不配置，系统也能通过关键词降级运行。
-
-```powershell
-$env:LLM_API_KEY="你的 LLM API Key"
-$env:LLM_BASE_URL="https://api.openai.com/v1"
-$env:LLM_MODEL="gpt-4o-mini"
-```
-
-如果不设置 `LLM_API_KEY`，系统会自动使用本地关键词 fallback，演示链路仍然可运行。API Key 只放在环境变量或本地 `.env`，不要提交到仓库。
-
-验证：
-
-```powershell
-Invoke-RestMethod http://localhost:8000/health
-python backend/scripts/bootstrap_admin.py
-$login = Invoke-RestMethod -Method Post http://localhost:8000/api/auth/login -Body (@{username="admin"; password="上一步输出的密码"} | ConvertTo-Json) -ContentType "application/json"
-$headers = @{Authorization="Bearer $($login.data.access_token)"}
-Invoke-RestMethod -Method Post http://localhost:8000/api/demo/seed -Headers $headers
-```
-
-导入 OCR 字幕并触发分析：
-
-```powershell
-python backend/scripts/import_ocr_subtitles.py D:\byte\upload\subtitles --drama-id 2 --dry-run
-python backend/scripts/import_ocr_subtitles.py D:\byte\upload\subtitles --drama-id 2
-
-$body = @{force_reanalyze=$true} | ConvertTo-Json
-foreach ($id in 4,5,6,7,8,9,3) {
-  Invoke-RestMethod -Method Post "http://localhost:8000/api/episodes/$id/analyze" -Headers $headers -Body $body -ContentType "application/json"
-}
-```
-
-这一步只生成后台可审核的 `draft` 高光；确认 OCR 字幕和高光时间点后，再在管理后台发布到播放端。
-
-### 2. 管理后台
-
-```powershell
-cd frontend/admin_web
-npm install
-npm run dev
-```
-
-默认访问 `http://localhost:5173`。
-
-生产环境可先构建前端，再由 FastAPI 托管 `frontend/admin_web/dist`：
-
-```powershell
-cd frontend/admin_web
-npm run build
-cd ../..
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
-```
-
-此时可直接访问 `http://localhost:8000/login` 和 `http://localhost:8000/workspace`。
-
-### 3. Flutter 播放端
-
-```powershell
-cd mobile
-flutter pub get
-flutter run
-```
-
-Flutter Web 默认通过 `http://localhost:8000` 访问后端；Android 模拟器默认通过 `http://10.0.2.2:8000` 访问电脑本机后端。如需改地址：
-
-```powershell
-flutter run --dart-define=API_BASE_URL=http://你的局域网IP:8000
-```
-
-### 4. 演示链路验收
-
-后端启动后，可运行只读验收脚本确认 E001-E007 的播放链路仍然完整：
-
-```powershell
-python backend/scripts/verify_demo_chain.py
-```
-
-该脚本会检查后端健康状态、`那年冬至` E001-E007 的发布高光数量、播放端接口是否只下发 `published` 高光、是否隐藏 `reason` / `confidence` / `status` 等后台字段、本地 MP4 代理是否支持 `Range`，以及后台 analytics 接口鉴权和核心统计字段。
-
-如果当前机器没有本地视频文件，可先跳过视频 Range 检查：
-
-```powershell
-python backend/scripts/verify_demo_chain.py --skip-video-range
-```
-
-## 演示流程
-
-1. 启动后端。
-2. 运行 `python backend/scripts/verify_demo_chain.py` 确认 E001-E007 后端下发和视频代理正常。
-3. 启动 Flutter Web 或 Android 播放端。
-4. 在首页选择 `那年冬至` 的任一剧集进入播放页。
-5. 播放到高光时间点后出现互动浮层，点击按钮后回传日志。
-6. 回到后台刷新，看板中的互动和点击率更新。
-
-## 交付物准备
-
-交付说明见 [docs/DELIVERY_GUIDE.md](docs/DELIVERY_GUIDE.md)。
-
-当前推荐交付 Web 演示包：管理后台 `frontend/admin_web/dist`、播放端 `mobile/build/web`、截图素材和高光审核清单统一整理到 `artifacts/delivery/`。APK 命令已整理，但本机仍需安装 Android SDK 后才能产出可安装包。
-
-## 部署方式
-
-### 方式一：脚本安装
-
-### 方式二：Docker Compose (推荐)
-
-使用 Docker Compose 一键启动完整环境（FastAPI 后端、RQ Worker、Redis、PostgreSQL）。
-
-```bash
-# 复制环境变量文件
-cp .env.example .env
-# 启动服务
-docker compose up --build -d
-```
-
-注：由于使用 Compose 编排，各服务都在同一个 Docker 虚拟网络下，配置中已默认将 `DATABASE_URL` 指向内部的 `postgres` 容器，并将 `REDIS_URL` 设为 `redis://redis:6379/0`。
-
-## 访问
-在浏览器中打开 `http://YOUR_SERVER_IP:8000`
-
-如果 admin 密码是自动生成的，在 log 中查找:
-```bash
-docker compose logs app | grep "admin password"
 ```
