@@ -7,6 +7,7 @@
 - 校正 `frontend/admin_web/README.md`，同步当前 `/workspace/*` 路由、JWT 登录、角色过滤、后台任务页接入状态和仍未完成的业务页面。
 - 修正 `.env.example` 中 Docker Compose 默认 `REDIS_URL` 为 `redis://redis:6379/0`，本地源码调试时再改用 `redis://localhost:6379/0`。
 - 将 Docker Compose 的主服务端口、PostgreSQL 端口、Redis 端口和 PostgreSQL 用户/密码/库名改为 `.env` 可配置，并同步 README 示例。
+- 后端配置接入 `python-dotenv`，手动启动 `uvicorn`、worker 和 `bootstrap_admin.py` 时会自动读取仓库根目录 `.env`。
 
 ### 已验证
 - 对照 `docker-compose.yml`、`Dockerfile`、`backend/scripts/docker-entrypoint.sh`、`backend/scripts/bootstrap_admin.py`、前端 `package.json` 和当前路由配置核对 README 命令与服务名。
